@@ -1,10 +1,16 @@
 # Structure-Based_docking
+
 Scripts to handle structure-based molecular docking, single-receptor virtual screening, consensus results of multiple receptor docking, and etc.
 
-There are 2 major folders with primary running scripts (A_ and B_), 1 folder with miscellaneous scripts (Z_), and 1 folder with example scripts to run those primary scripts (Examples) :
+There are 2 major folders with _primary running_ scripts (**A_docking_scripts** and **B_collect_scripts**), 1 folder with _miscellaneous_ scripts (**Z_misc_scripts**), and 1 folder with _example_ scripts to run those primary scripts (**Examples**) :
+
 ```
   /A_docking_scripts   --   Setting up and running of docking
+      |------ /1_prep_ligands
+      |------ /2_virtual_screen
+
   /B_collect_scripts   --   Collecting the docking results
+
   /Z_misc_scripts      --   collection of less used scripts to manage docking results
   /Examples
       |------ /1_prep_ligands             - prepare ligand library
@@ -16,24 +22,26 @@ There are 2 major folders with primary running scripts (A_ and B_), 1 folder wit
       |------ /7_search_analogs_substruct - substructure search with SMILES patterns
       |------ /8_search_analogs_FP        - search SMILES patterns with fingerprints
 ```
+
 #######################################################################################
 # Steps to Prepare Ligand Library for Docking - 19.07.28
+
 **Prepare initial ligand library**
 
 - 0. Download library subsets in SMILES format.
 - 1. check total number of ligands, collect all SMILES from different subsets
    into one single file, the shuffle the SMILES to randomize the order
 ```
-  > cat */*/*smi | grep -v 'smiles' > all.smi
-  > sort -uR all.smi > shuffled.smi
-  > cat shuffled.smi | wc -l
+    > cat */*/*smi | grep -v 'smiles' > all.smi
+    > sort -uR all.smi > shuffled.smi
+    > cat shuffled.smi | wc -l
 ```
 - 2. to the shuffled SMILES file, split it into a number of library subsets with each subset  has ~100,000 ligands (a '.' is needed before 'smi' and after 'new_name'). This _subset number_ will need to be precalculated by knowing how many ligands are there (from previous step, 'cat shuffled.smi | wc -l')
 ```
-  > split --numeric-suffixes=1         \
-          --additional-suffix=".smi"   \
-          --number=30                  \
-          shuffled.smi "new_name."
+    > split --numeric-suffixes=1         \
+            --additional-suffix=".smi"   \
+            --number=30                  \
+            shuffled.smi "new_name."
 ```
 
 > one issue with these shuffled SMILES files -- the first line is somehow always missing some characters, rendering the first line (molecule) of all smiles files to be bad and any conversion will fail. But that only affect 75 molecules out of ~ 6M, ignore for now.
@@ -45,8 +53,11 @@ There are 2 major folders with primary running scripts (A_ and B_), 1 folder wit
 
 **Prepare ligand library for Glide docking**
 
-- from Schoridnger/2016-03+, the _'-r 1'_ flag is decrepated. Before, it controls the ring conformation "add input ring conformation if available". 18.08.22 added property filter to remove useless compds, although it might not be that useful if you can see the reactive motifs and PAINS features.
-- Also, PAINS patterns are "dirty" and can flag down okay compounds as false positive. I now do not recommend doing a PAINS pre-filtering.
+- from Schoridnger/2016-03+, the _'-r 1'_ flag is decrepated. Before, it controls the ring conformation "add input ring conformation if available". 18.08.22 added property filter to remove useless compds (known **reactives** and **PAINS**). while removing known reactives (acyl chloride, aldehyde, etc) is useful for fragment-like library, there are very few reactives in lead-like and drug-like libraries. 
+
+- This setup will use [OPLS3e force field](https://doi.org/10.1021/acs.jctc.8b01026) to generate the 3D structure for the input ligand. Use the universal SDF.gz format. It generates one(1) most preferred charged state/tautomer for each ligand at pH=7.2 +/- 0.3, becuase most screening are against targets in the [cytosol (pH~7.2)](https://doi.org/10.1042/bj2500001) or blood/extraceullar domain (pH~7.4). For targets in [specialized organelles](https://doi.org/10.1152/physiologyonline.2002.17.1.1) (peroxisome, mitocondria, lysosome, etc) that have lower pH, a new set of ligands with charged state/tautomer appropiate for that pH should be generated. It also generates the stereoismers, tho it is recommended to use input with pre-defined chiral centers available.
+
+- Athough removing PAIN compounds is a good idea, the SMARTS patterns used in the substructure recognition are greedily "dirty"[1](https://doi.org/10.1021/acs.jcim.6b00465) [2](https://doi.org/10.1021/acschembio.7b00903) [3](https://blogs.sciencemag.org/pipeline/archives/2018/08/06/pains-filters-in-the-real-world) and can flag down okay compounds as false positives. This has happened to the lead compound in [Dyrk1A type-II inhibitor project](https://doi.org/10.1016/j.ejmech.2018.08.007), which turns out it is a false positive. Though I now do not recommend doing a PAINS pre-filtering, it is better to understand the key features [1](https://doi.org/10.1021/jm901137j) [2](https://www.nature.com/news/chemistry-chemical-con-artists-foil-drug-discovery-1.15991) and pick out potential PAINS by eye in the hit-pick stage, then suggest watching these guys out during testing in orthogonal assays.
 
 ```
 time ${SCHRODINGER}/ligprep -WAIT -LOCAL \
@@ -75,6 +86,7 @@ echo $!
 **Prepare ligand library for OpenEye Docking**
 
 - OpenEye preparation requires multiple steps. First with _'fixpka'_ to generate one(1) most relevant tautomoer/charged state for the ligand as pH=7.4, then _'flipper'_ to generate multiple stereoisomers (tho it is recommended to use starting ligands with their chiral center predefined), then use _'omega2'_ to generate conformer library. For conformer generation, recommend to get _-maxconfs 300_, since for larger molecules (like sorafenib) the default 200 maximum conformer is not enough to cover the conformational space of ligands with more rotatable bonds.
+- Although OMEGA uses the older MMFF94 force field with electrostatics modification by the original developers of force fields (Bayly, Darden are with [OE](https://www.eyesopen.com/staff)!), the generated small molecule conformations are actually similar to crystallographic poses and appropiate for use in docking. For atoms with unique hybridization state (e.g. "the almost aromatic" ring NC1=NN=CCS1 in lead compound in [Dyrk1A type-II inhibitor](https://doi.org/10.1016/j.ejmech.2018.08.007)), conformation will look bad in comparison to those generated by the all-new OPLS3e or QM calculated conformation. But given the extreme efficiency and quality for vast majority of the ligands, results from OMEGA is still very much usable.
 
 ```
 fixpka  -in input.smi    -out input.oe.smi
@@ -95,7 +107,7 @@ omega2 \
 
 > ${OPENEYE}/bin/fred -mpi_np $cpu
 ```
-- OpenEye docking has 2 steps, (1) generating the _rigid_ receptor grid file, and (2) _rigid_ docking of ligand conformers to receptor grid. For the most parts the default settings by OpenEye will work for 95% of the cases becuase they _really really_ optimized everything.
+- OpenEye docking has 2 steps, (1) generating the _rigid_ receptor grid file, and (2) _rigid_ docking of ligand conformers to receptor grid. For the most parts the default settings by OpenEye will work for 95% of the cases becuase they _really really_ optimized everything. As for the scoring function ChemGauss4, it is a combination of a knowledge-based Gaussian potential for shape complementary plus a modified ChemScore/PFP/GoldScore(?) empirical-based chemical feature scoring.
 
 - **Grid generation** - this is done through the command-line GUI *make_receptor*. Default setting will work for almost all cases. May want to incresae the size of the docking pocket. Can setup directional H-bond (donor or acceptor) or SMARTS-defined spherical constraints if these interactions are known and critical.
 
@@ -106,7 +118,7 @@ omega2 \
 
 > ${SCHRODIMGER}/glide  glide-dock.inp
 ```
-- Schrodinger's Glide docking has 2 steps, (1) generating the _rigid_ receptor grid file, and (2) _flexible_ ligand docking to receptor grid. Most of the inital setup is done through Schrodinger's Maestro GUI, but certain settings can only be done via altering the input files written out by the GUI, and then run the modified input files in command-line mode.
+- Schrodinger's Glide docking has 2 steps, (1) generating the _rigid_ receptor grid file, and (2) _flexible_ ligand docking to receptor grid. Most of the inital setup is done through Schrodinger's Maestro GUI, but certain settings can only be done via altering the input files written out by the GUI, and then run the modified input files in command-line mode. As for the scoring function GlideScore, it is an empirical-based scoring function, plus the options to consider H-bond-like _Aromatic H_ and _Halogen_ bonding [interactions](https://doi.org/10.1021/jm100112j).
 
 - **Grid generation** - the default vdw scaling of 1.0x is alright, but I have found a softened vdw scaling (0.75x - 0.80x) to be optimal for most cases (kinases, transporers, etc.). But really, need to try a couple vdw scalings (0.60x - 1.20x, in 0.05 increment) on knonwn ligands to test what is the best vdw scaling factor for the particular receptor. If there is no knonwn ligand available, then a 0.80x vdw scaling is a safe bet. Cannot edit this in the GUI, have to edit it in the input text file written out by the GUI. **Always** turn on **Aromatic H**and **Halogen bonds** options. If you know certain interaction **must** happen, e.g. kinase inhibitors H-bonding the backbone amide of hinge residue, type-II kinase inhibitors occupying the hydrophobic DFG-pocket, then you can setup contraint location (spherical, or directional for H-bond) and preferred ligand types in SMARTS patterns.
 
