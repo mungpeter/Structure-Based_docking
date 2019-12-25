@@ -2,9 +2,10 @@
 Scripts to handle structure-based molecular docking, single-receptor virtual screening, consensus results of multiple receptor docking, and etc.
 
 There are 2 major parts:
-**_(A)_ /A_docking_scripts** -- Setting up and running of docking
-**_(B)_ /B_collect_scripts** -- Collecting the docking results
-
+```
+  /A_docking_scripts** -- Setting up and running of docking
+  /B_collect_scripts** -- Collecting the docking results
+```
 #####################################################################################################
 
 #####################################################################################################
