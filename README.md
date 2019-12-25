@@ -19,7 +19,7 @@ There are 2 major folders with primary running scripts (A_ and B_), 1 folder wit
 #######################################################################################
 # Steps to Prepare Ligand Library for Docking
 
-- 19.07.28
+* 19.07.28 *
 **Prepare initial ligand library**
 
 - 0. Download library subsets in SMILES format.
