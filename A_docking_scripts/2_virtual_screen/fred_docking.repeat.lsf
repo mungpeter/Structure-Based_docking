@@ -49,7 +49,8 @@ endif
 cd $local
 
 # timeout 4h \
-  oempirun -np $cpu fred   \
+#  oempirun -np $cpu fred   \   # this is only in older version
+  fred -mpi_np $cpu        \
     -receptor $work/$prot  \
     -dbase $lib/$dbase     \
     -hitlist_size $hit     \

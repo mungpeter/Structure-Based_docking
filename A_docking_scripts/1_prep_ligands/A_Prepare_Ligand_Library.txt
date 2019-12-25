@@ -1,0 +1,85 @@
+## 19.07.28
+
+#####################################################################
+### prepare initial ligand library ###
+
+0. Download library subsets in SMILES format. 
+
+1. check total number of ligands, collect all SMILES from different subsets
+   into one single file, the shuffle the SMILES to randomize the order
+  > cat */*/*smi | grep -v 'smiles' > all.smi
+  > sort -uR all.smi > shuffled.smi
+  > cat shuffled.smi | wc -l
+
+2. to the shuffled SMILES file, split it into library subsets with each subset 
+   has ~100,000 ligands (a '.' is needed before 'smi' and after 'new_name')
+  > split --numeric-suffixes=1         \
+          --additional-suffix=".smi"   \
+          --number=30                  \
+          shuffled.smi "new_name."
+
+** one issue with these smilse files -- the first line is always missing some
+characters, rendering the first line (molecule) of all smiles files to be bad
+and any conversion will fail. But that only affect 75 molecules out of ~ 6M,
+ignore for now.
+
+## for lead-like library, keep each subset file at 100,000 mol max.
+## for drug-like library, keep each subset file at  80,000 mol max.
+
+###################################################################
+
+### Prepare ligand library for Glide docking ###
+
+# from Schoridnger/2016-03+, the '-r 1' flag is decrepated. Before, it controls
+# the ring conformation 'add input ring conformation if available'
+# 18.08.22 added property filter to remove useless compds, although it might
+# not be that useful if you can see the reactive motifs and PAINS features.
+# Also, PAINS patterns are "dirty" and can flag down okay compounds as false
+# positive. I now do not recommend doing a PAINS pre-filtering.
+
+time ${SCHRODINGER}/ligprep -WAIT -LOCAL \
+        -i 2   -epik -We,-ph,7.2,-pht,0.3,-ms,1 \
+        -s 1   -t 1 \
+        -bff   16 \
+#        -f $homedir/all-1.sch.propt_filter.cflt \
+        -ismi  $smi_dir/SDIN.smi \
+#       -isd   /sc/hydra/projects/schlea02a/8_lib/zinc_lead13/glide/SDIN.sch.sdf.gz \
+        -osd   SDIN.sch.sdf.gz \
+        -HOST  localhost:$schcpu \
+        -NJOBS $schnjob
+echo $!
+
+## Use Schrodinger Canvas to filter certain pains ligands
+#  $SCHRODINGER/utilities/canvasSearch -WAIT -LOCAL \
+#        -isd   SDIN.sdf.gz \
+#        -osd   SDIN.sch.sdf.gz \
+#        -osd2  SDIN.fail.sdf.gz -filter  \
+#        -file  $homedir/all-1.sch.pains_filter.cflt \
+#        -JOB   JBNAME \
+#        -HOST  localhost:$schcpu 
+
+####################################################################
+
+### Prepare ligand library for OpenEye Docking ###
+
+# OpenEye preparation requires multiple steps. First with 'fixpka' to generate
+  one(1) most relevant tautomoer/charged state for the ligand as pH=7.4, then
+  'flipper' to generate multiple stereoisomers (tho it is recommended to use
+  starting ligands with their chiral center predefined), then use 'omega2' to
+  generate conformer library. For conformer generation, recommend to get
+  -maxconfs 300, since for larger molecules (like sorafenib) the default 200
+  maximum conformer is not enough to cover the conformational space of ligands
+  with more rotatable bonds.
+
+fixpka  -in input.smi    -out input.oe.smi
+flipper -in input.oe.smi -out input.oe.ism
+omega2 \
+  -mpi_np   $cpu      \
+  -in       input.oe.ism    \
+  -out      input.oeb.gz    \
+  -prefix   prefix    \
+  -maxconfs 300       \
+  -progress none      \
+  -strict   false
+
+
