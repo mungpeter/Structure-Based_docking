@@ -17,11 +17,10 @@ There are 2 major folders with primary running scripts (A_ and B_), 1 folder wit
       |------ /8_search_analogs_FP        - search SMILES patterns with fingerprints
 ```
 #######################################################################################
-<<<<<<< HEAD
 # Steps to Prepare Ligand Library for Docking
 
 - 19.07.28
-** prepare initial ligand library **
+**Prepare initial ligand library**
 
 - 0. Download library subsets in SMILES format.
 - 1. check total number of ligands, collect all SMILES from different subsets
@@ -31,8 +30,7 @@ There are 2 major folders with primary running scripts (A_ and B_), 1 folder wit
   > sort -uR all.smi > shuffled.smi
   > cat shuffled.smi | wc -l
 ```
-- 2. to the shuffled SMILES file, split it into library subsets with each subset
-   has ~100,000 ligands (a '.' is needed before 'smi' and after 'new_name')
+- 2. to the shuffled SMILES file, split it into a number of library subsets with each subset  has ~100,000 ligands (a '.' is needed before 'smi' and after 'new_name'). This _subset number_ will need to be precalculated by knowing how many ligands are there (from previous step, 'cat shuffled.smi | wc -l')
 ```
   > split --numeric-suffixes=1         \
           --additional-suffix=".smi"   \
@@ -47,7 +45,7 @@ There are 2 major folders with primary running scripts (A_ and B_), 1 folder wit
 
 ###################################################################
 
-** Prepare ligand library for Glide docking **
+**Prepare ligand library for Glide docking**
 
 - from Schoridnger/2016-03+, the '-r 1' flag is decrepated. Before, it controls the ring conformation 'add input ring conformation if available' 18.08.22 added property filter to remove useless compds, although it might not be that useful if you can see the reactive motifs and PAINS features.
 - Also, PAINS patterns are "dirty" and can flag down okay compounds as false positive. I now do not recommend doing a PAINS pre-filtering.
@@ -76,7 +74,7 @@ echo $!
 ```
 ####################################################################
 
-** Prepare ligand library for OpenEye Docking **
+**Prepare ligand library for OpenEye Docking**
 
 - OpenEye preparation requires multiple steps. First with 'fixpka' to generate one(1) most relevant tautomoer/charged state for the ligand as pH=7.4, then 'flipper' to generate multiple stereoisomers (tho it is recommended to use starting ligands with their chiral center predefined), then use 'omega2' to generate conformer library. For conformer generation, recommend to get -maxconfs 300, since for larger molecules (like sorafenib) the default 200 maximum conformer is not enough to cover the conformational space of ligands with more rotatable bonds.
 
