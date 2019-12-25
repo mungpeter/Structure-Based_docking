@@ -45,7 +45,7 @@ There are 2 major folders with primary running scripts (A_ and B_), 1 folder wit
 
 **Prepare ligand library for Glide docking**
 
-- from Schoridnger/2016-03+, the '-r 1' flag is decrepated. Before, it controls the ring conformation 'add input ring conformation if available' 18.08.22 added property filter to remove useless compds, although it might not be that useful if you can see the reactive motifs and PAINS features.
+- from Schoridnger/2016-03+, the _'-r 1'_ flag is decrepated. Before, it controls the ring conformation "add input ring conformation if available". 18.08.22 added property filter to remove useless compds, although it might not be that useful if you can see the reactive motifs and PAINS features.
 - Also, PAINS patterns are "dirty" and can flag down okay compounds as false positive. I now do not recommend doing a PAINS pre-filtering.
 
 ```
@@ -74,7 +74,7 @@ echo $!
 
 **Prepare ligand library for OpenEye Docking**
 
-- OpenEye preparation requires multiple steps. First with 'fixpka' to generate one(1) most relevant tautomoer/charged state for the ligand as pH=7.4, then 'flipper' to generate multiple stereoisomers (tho it is recommended to use starting ligands with their chiral center predefined), then use 'omega2' to generate conformer library. For conformer generation, recommend to get -maxconfs 300, since for larger molecules (like sorafenib) the default 200 maximum conformer is not enough to cover the conformational space of ligands with more rotatable bonds.
+- OpenEye preparation requires multiple steps. First with _'fixpka'_ to generate one(1) most relevant tautomoer/charged state for the ligand as pH=7.4, then _'flipper'_ to generate multiple stereoisomers (tho it is recommended to use starting ligands with their chiral center predefined), then use _'omega2'_ to generate conformer library. For conformer generation, recommend to get _-maxconfs 300_, since for larger molecules (like sorafenib) the default 200 maximum conformer is not enough to cover the conformational space of ligands with more rotatable bonds.
 
 ```
 fixpka  -in input.smi    -out input.oe.smi
@@ -95,7 +95,7 @@ omega2 \
 
 > ${OPENEYE}/bin/fred -mpi_np $cpu
 ```
-- OpenEye docking has 2 steps, (1) generating the rigid receptor grid file, and (2) _rigid_ docking of ligand conformers to receptor grid. For the most parts the default settings by OpenEye will work for 95% of the cases becuase they _really really_ optimized everything.
+- OpenEye docking has 2 steps, (1) generating the _rigid_ receptor grid file, and (2) _rigid_ docking of ligand conformers to receptor grid. For the most parts the default settings by OpenEye will work for 95% of the cases becuase they _really really_ optimized everything.
 - **Grid generation** - this is done through the command-line GUI *make_receptor*. Default setting will work for almost all cases. May want to incresae the size of the docking pocket. Can setup directional H-bond (donor or acceptor) or SMARTS-defined spherical constraints if these interactions are known and critical.
 - **Docking** - this is done through the command-line program *fred*. The default setup will work for 99% of the case. Write out the docking results to **sdf.gz** format, not the *oeb.gz* format. Be sure to change the **-hitlist_size** to **0** (save all), otherwise only _500_ (default) will be saved and the rest are lost.
 
@@ -104,7 +104,7 @@ omega2 \
 
 > ${SCHRODIMGER}/glide  glide-dock.inp
 ```
-- Schrodinger's Glide docking has 2 steps, (1) generating the rigid receptor grid file, and (2) _flexible_ ligand docking to receptor grid. Most of the inital setup is done through Schrodinger's Maestro GUI, but certain settings can only be done via altering the input files written out by the GUI, and then run the modified input files in command-line mode.
+- Schrodinger's Glide docking has 2 steps, (1) generating the _rigid_ receptor grid file, and (2) _flexible_ ligand docking to receptor grid. Most of the inital setup is done through Schrodinger's Maestro GUI, but certain settings can only be done via altering the input files written out by the GUI, and then run the modified input files in command-line mode.
 - **Grid generation** - the default vdw scaling of 1.0x is alright, but I have found a softened vdw scaling (0.75x - 0.80x) to be optimal for most cases (kinases, transporers, etc.). But really, need to try a couple vdw scalings (0.60x - 1.20x, in 0.05 increment) on knonwn ligands to test what is the best vdw scaling factor for the particular receptor. If there is no knonwn ligand available, then a 0.80x vdw scaling is a safe bet. Cannot edit this in the GUI, have to edit it in the input text file written out by the GUI. **Always** turn on **Aromatic H**and **Halogen bonds** options. If you know certain interaction **must** happen, e.g. kinase inhibitors H-bonding the backbone amide of hinge residue, type-II kinase inhibitors occupying the hydrophobic DFG-pocket, then you can setup contraint location (spherical, or directional for H-bond) and preferred ligand types in SMARTS patterns.
 -- **Docking** - the default _Standard Precision (SP)_ setting works for most cases. **Do not** use _High-throughput virtual screen (HTVS)_ setting to "save time" as the manual recommended. Tried it and this setting failed to capture many known ligands even in the top 50% ranking. **Extreme Precision (XP)** is useless and slow for most cases as it uses very harsh and rigid vdw scaling, which fails in most cases too. Only ever use it if you are working on a congeneric series of a scaffold that is developed based on a crystal structure. **Always** turn on **Aromatic H** and **Halogen bonds** options. Can use constraints previously defined in Grid generation by requiring _X_ of _n_ constraints must be fulfilled. Also, save the docking results with **no** receptor pose, and in **SDF** format, don't use **MAE** format.
 
@@ -112,18 +112,13 @@ omega2 \
 ```
 > ${SCHRODINGER}/ifd
 ```
-- **Induced-Fit Docking (IFD)** from Schrodinger is a combination of soft docking with receptor minimization, and optional loop modeling. Most of the setup is done through Maestro GUI. 
-- The initial rigid docking uses a much softened vdw radii (recommend 0.5-0.6x vdw scaling), followed by receptor "side chain" minimization, followed by regular rigid Glide docking (recommend 0.8x vdw scaling) and rescoring for the final result. User can define which residue's side chain can be minimized (default: those within 5A distance from initial ligand docking pose), or user-defined residues. User can also designate which residue side chain is "removed" in the initial docking to avoid clash or overburdening bias in the intial docking (see the supplementary of article [_Lazarus Ung JACS 2019 ULK4_](https://doi.org/10.1021/jacs.9b10458), where IFD for prodrug R788 required such maneuver). 
+- **Induced-Fit Docking (IFD)** from Schrodinger performs _flexible_ ligand docking to _flexible_ receptor. It combines softened docking with receptor minimization, and optional loop modeling. Most of the setup is done through _Maestro IFD GUI_. 
+- The initial rigid docking uses a much softened _vdw radii_ (recommend 0.5-0.6x vdw scaling), followed by receptor "side chain" minimization, followed by regular rigid Glide docking (recommend 0.8x vdw scaling) and rescoring for the final result. User can define which residue's side chain can be minimized (default: those within 5A distance from initial ligand docking pose), or user-defined residues. User can also designate which residue side chain is "removed" in the initial docking to avoid steric hindrance or overwhelming bias in the intial docking (see the supplementary of article [_Lazarus Ung JACS 2019 ULK4_](https://doi.org/10.1021/jacs.9b10458), where IFD for prodrug R788 required such maneuver). 
 - **Also, a hidden option to use "Flexible Loops" is accessible by modifying the input text file written out by IFD**. This is described in the manual but is not available in the Meastro IFD GUI. It is useful for cases where binding site involves a flexible loop, e.g. P-loop of protein kinase.
 
 #######################################################################################
 # Collecting Results of Standard Rigid-Receptor Docking
-=======
-# Docking
 
-#######################################################################################
-# Collecting results
->>>>>>> 03cfd781f664837f7e6c0798e8783e4d70f788b1
 ```
 > B_collect_scripts/5_general_screen_get_top.py
       -score    [ score file(s) ]  # accept multiple files "*.txt,x.txt"
@@ -147,18 +142,14 @@ omega2 \
  result > single_VS.summary.sch_top1k.sdf, single_VS.summary.sch_top1k.txt, 
           single_VS.summary.sch_top1k.histo.png
 ```
-- Collect the top scoring results from one or multiple docking files and generate a histogram to show the distribution of the docking scores (.png). The score files (.txt) and the docking pose files (.sdf) can be in zipped format but must have the same prefix, i.e.:
+- Collect the top scoring results from _one_ or _multiple_ docking files and generate a histogram to show the distribution of the docking scores (.png). The score files (.txt) and the docking pose files (.sdf) can be in zipped format but must have the same prefix, i.e.:
 > test.sch_docked.txt.bz2
 > test.sch_docked.sdf.bz2
 
 
 ```
 > B_collect_scripts/7_general_docking_cluster.py
-<<<<<<< HEAD
              [ Docking input(s): sdf ]   - accept multiple files "*.sdf,x.sdf"
-=======
-             [ Docking input(s): sdf ]     - accept multiple files "*.sdf,x.sdf"
->>>>>>> 03cfd781f664837f7e6c0798e8783e4d70f788b1
              [ Tanimoto cutoff: float ]  - 0.4 works for lead-/drug-like molecules
              [ output prefix ] 
              [ receptor structure: pdb ]
@@ -176,7 +167,7 @@ omega2 \
  result >  output.clust-04.sdf,    output.clust-04.pse,
            output.clust-04.pdf
 ```
-- Cluster the supplied molecules using a fingerprint-based chemical similarity method with a user-defined Tanimoto cutoff value. A value of 0.40 works for most cases of lead-/drug-like molecules (MW 300-500+), while fragment-like may need a lower value, e.g. 0.37. The clustered results are placed into a PyMOL session file and the docking receptor is used. The clustered molecules are also output into a PDF file.
+- Cluster the supplied molecules using a _fingerprint-based chemical similarity_ method with a user-defined Tanimoto cutoff value. A value of **0.40** works for most cases of lead-/drug-like molecules (MW 300-500+), while fragment-like may need a lower value, e.g. 0.37. The clustered results are placed into a PyMOL session file and the docking receptor is used. The clustered molecules are also output into a PDF file.
 
 ```
 > B_collect_scripts/9_consensus_best_pose.py
@@ -200,7 +191,6 @@ omega2 \
 - Perform a consensus of results from a set of dockings to a single receptor. A molecule has to be in the top <X>% of <Y> number of model to be considered in the consensus result. For each molecule, the highest ranking score and pose is saved. The final consensus is the ranking of the single best pose or the average of rank, tho single best rank is better overall. SDF and Score files used must have same prefix.
 
 #######################################################################################
-<<<<<<< HEAD
 # Collecting Results of Schrodinger Induced-Fit Docking (IFD)
 ```
 > B_collect_scripts/3_glide_IFD_mae2pdb.py
@@ -217,10 +207,6 @@ result > test_IFD.pse
 ```
 - Consolidate Schrodinger's IFD top results scattered within the IFD working directory and put them into a PyMOL session file. The IFD scores are within a result CSV file, which lists the IFD docking pose file associating with the ligand used. This script extracts those information to file the corresponding .MAE files, converts them back into .PDB files, and collects them into the PyMOL session file.
 
-=======
->>>>>>> 03cfd781f664837f7e6c0798e8783e4d70f788b1
-#######################################################################################
-#######################################################################################
 
 #######################################################################################
 # Required software / packages
@@ -237,13 +223,9 @@ Schrödinger       # 2019-01+
   ligprep
   glide
   glide_sort
-<<<<<<< HEAD
   ifd
   prepwizard
   structconvert
-=======
-  prepwizard
->>>>>>> 03cfd781f664837f7e6c0798e8783e4d70f788b1
 ```
 ```
 csh/tcsh          # shell
