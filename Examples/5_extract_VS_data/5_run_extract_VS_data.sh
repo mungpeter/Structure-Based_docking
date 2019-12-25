@@ -5,7 +5,7 @@
 ## result
 
 ## pick out specific molecules from original file(s) based on mol ID
-../../8_general_result_select.py        \
+../../B_collect_scripts/8_general_result_select.py        \
   recpt.zfg19.sch_top500.pick.txt.bz2   \
   recpt.zfg19.sch_top500.sdf.bz2        \
   Score

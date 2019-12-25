@@ -15,7 +15,7 @@
 
 
 # step 3, consensus result
-../../9_consensus_best_pose.py        \
+../../B_collect_scripts/9_consensus_best_pose.py        \
   score_file.list                     \
   2                                   \
   recpt.zfg19.sch_top500.cons_10-2    \
@@ -24,7 +24,7 @@
   -c
 
 # step 4, cluster results
-../../7_general_docking_cluster.py           \
+../../B_collect_scripts/7_general_docking_cluster.py           \
   recpt.zfg19.sch_top500.cons_10-2.sdf       \
   0.4                                        \
   recpt.zfg19.sch_top500.cons_10-2.clust-04  \

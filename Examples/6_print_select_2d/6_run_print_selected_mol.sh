@@ -6,7 +6,7 @@
 ## For sdf format, zipped file can be accepted
 ## for smi format, only ASCII format is accepted
 
-../../6_general_print_mol.py              \
+../../B_collect_scripts/6_general_print_mol.py              \
   recpt.zfg19.sch_top500.pick.sdf.bz2
 
 ## recpt.zfg19.sch_top500.pick.pdf

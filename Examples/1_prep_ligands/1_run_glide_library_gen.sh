@@ -20,7 +20,7 @@ time ${SCHRODINGER}/ligprep -WAIT -LOCAL \
 ## in hit-to-lead. So I stopped using this filtering and just inspect the
 ## final virtual screening of entire library visually
 
-  $SCHRODINGER/utilities/canvasSearch -WAIT -LOCAL \
+time  $SCHRODINGER/utilities/canvasSearch -WAIT -LOCAL \
         -isd   antibiotics.sch.sdf.gz         \
         -osd   antibiotics.sch_safe.sdf.gz    \
         -osd2  antibiotics.sch_pain.sdf.gz    \

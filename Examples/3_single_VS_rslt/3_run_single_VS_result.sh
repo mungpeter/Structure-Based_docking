@@ -4,7 +4,7 @@
 ## - collect all subsets of data into a top set
 ## - general cluster of the top set with ECFP_4 tanimoto cutoff @ 0.4
 
-../../5_general_screen_get_top.py    \
+../../B_collect_scripts/5_general_screen_get_top.py    \
   -score   "*.sch_docked.txt.bz2"    \
   -sdf     "*.sch_docked.sdf.bz2"    \
   -top     1000                      \
@@ -14,7 +14,7 @@
   -hmin    -2
 
 
-../../7_general_docking_cluster.py          \
+../../B_collect_scripts/7_general_docking_cluster.py          \
   single_VS.summary.sch_top1k.sdf           \
   0.4                                       \
   single_VS.summary.sch_top1k.clust-04      \
