@@ -1,0 +1,183 @@
+#!/usr/bin/python
+
+##########################################################################
+#
+#	Peter M.U. Ung @ MSSM
+#
+#	v1.0	14.05.10
+#
+#	Purpose: perform a consensus of results from a set of dockings to 
+#	         a single receptor. 
+#		 For each molecule, the highest ranking score and pose is 
+#		 saved. 
+#		 The final consensus is the ranking of the single best pose.
+#
+##########################################################################
+
+import sys,os,glob
+
+msg = '''\n    > {0}\n        [List of Score Files] [Output Prefix] 
+        [-a average of rank | -b single best rank] [Top Num% to Count: %]
+    e.g. <script> '*_score.txt' consensus -b 25\n
+    Purpose: Generate consensus of docking based on 
+          --Averge of rankings | Single Best Pose--\n'''.format(sys.argv[0])
+if len(sys.argv) != 5: sys.exit(msg)
+
+from file_handle import *
+from rdkit import Chem
+from rdkit.Chem import AllChem
+from rdkit_open import rdkit_open
+import numpy as np
+import operator
+
+##########################################################################
+def main(score_list, prefix, mode, top_percent):
+  Scores = {}
+
+  Score_Files = glob.glob(score_list)
+  print Score_Files
+  if mode == '-b':   score_best = True
+  elif mode == '-a': score_best = False
+  else: sys.exit('Mode of ranking not specified: '+mode)
+
+  # Create a dict of scores from all imported scores
+  for scores in Score_Files:
+    print '  Reading: {0}'.format(scores)
+    ReadScores(Scores, scores)
+
+  # Convert the dict of scores into a ranked list of consensus scores.
+  # Write the consensus scores to file
+  Consensus = ConsensusScores(Scores, score_best, top_percent, prefix)
+
+  # Extract the docking pose of molecules according to it top consensus score.
+  # Write the docking poses to file
+  ExtractMol(Consensus, score_best, prefix)
+
+
+##########################################################################
+## Create a dict of scores from all imported scores
+def ReadScores(Dict, score_file):
+  Mol = []
+
+  handle = file_handle(score_file)
+  File   = remove_remark(handle)
+  for line in File:
+    Items = line.split()
+    try:
+      test = float(Items[1])
+    except ValueError:
+      continue
+    Mol.append([Items[0], float(Items[1])])
+  Mol.sort(key=lambda tup: tup[1])
+
+  for idx, Items in enumerate(Mol):
+    # If the Mol exist in Dict, add a new list of score and filename to it,
+    # if not, create a new entry for it
+    if Items[0] in Dict:
+      Dict[Items[0]].append([Items[1], score_file, idx])
+    else:
+      Dict[Items[0]] = [[Items[1], score_file, idx]]
+
+
+##########################################################################
+## Convert the dict of scores into a ranked list of consensus scores. 
+## Write the consensus scores to file
+def ConsensusScores(Dict, score_best, top_percent, prefix):
+
+  Consensus = []
+  for mol_id in Dict:
+    Mol   = sorted(Dict[mol_id], key=lambda tup: tup[0])
+    Ranks = [x[2] for x in Mol]
+    # Use the best scoring pose for consensus, 
+    # else, use the sum of rankings for consensus
+    if score_best is True:
+                     #(best_score, mol_id, mol_in_file, log(Rank_Sum))
+      Consensus.append([Mol[0][0], mol_id, Mol[0][1], np.log10(np.sum(Ranks))])
+    else:
+      Consensus.append([np.log10(np.sum(Ranks)), mol_id, Mol[0][1], Mol[0][0]])
+  Consensus.sort(key=lambda tup: tup[0])    # ranked by top ligands
+
+  out = open(prefix+'.consensus.txt', 'w')
+
+  if score_best is True:
+    out.write('#{0}\t{1}\t{2}\t{3}\n'.format('mol_id','score','file','B-Rank'))
+  else:
+    out.write('#{0}\t{1}\t{2}\t{3}\n'.format('mol_id','rank','file','B-Score'))
+  for Item in Consensus:
+    out.write('{0}\t{1:.4f}\t{2}\t{3:.4f}\n'.format(Item[1],Item[0],Item[2],Item[3]))
+  
+  # Print frequency of model with top scoring ligands
+  for Item in TopModelFrequency(Consensus, top_percent):
+    out.write('{0}\t{1}\n'.format(Item[0], Item[1]))
+  out.close()
+
+  return Consensus
+
+
+##########################################################################
+# Write out the frequency of model with top scoring ligands
+def TopModelFrequency(List, top_percent):
+  File = {}
+  top = int(round(len(List)*(top_percent/100)))
+  for Item in List[0:top]:
+    if Item[2] in File:
+      File[Item[2]] += 1
+    else:
+      File[Item[2]] = 1
+  return sorted(File.iteritems(),key=operator.itemgetter(1),reverse=True)
+
+
+##########################################################################
+## Extract the docking pose of molecules according to it top consensus score.
+## Write the docking poses to file
+def ExtractMol(List, score_best, prefix):
+  ConsScore = {}
+  Saved_Mol = []
+
+  # cluster molecules based on which SDF file they belong to
+  List.sort(key=lambda tup: tup[2])
+  for Mol in List:
+    if Mol[2] in ConsScore:
+      ConsScore[Mol[2]].append(Mol)
+    else:
+      ConsScore[Mol[2]] = [Mol]
+
+  # from each SDF file, extract the docked pose
+  for file_id in ConsScore:
+    file_prefix = file_id.split('_score')[0]
+    SDF         = glob.glob(file_prefix+'_docked.sdf*')
+    if len(SDF) == 0: sys.exit('{0} or related SD file not found.'.format(file_prefix+'_docked.sdf'))
+    else: sdf_file = SDF[0]
+
+    handle = file_handle(sdf_file)
+    Temp = [x for x in Chem.ForwardSDMolSupplier(handle) if x is not None]
+    SDMol = {}
+    for mol in Temp: SDMol[mol.GetProp('_Name')] = mol
+
+    for Mol in ConsScore[file_id]:
+      try:
+        test = SDMol[Mol[1]]
+      except KeyError:
+        print '{0} is not registered. Skip.'.format(Mol[1])
+        continue
+#      if score_best is True: 
+#        Saved_Mol.append([Mol[0], Mol[1], SDMol[Mol[1]]])
+#      else:
+      Saved_Mol.append([Mol[0], Mol[1], SDMol[Mol[1]], Mol[3]])
+    del Temp
+    del SDMol
+
+  # Sort all mol based on score
+  if score_best is True:
+    Saved_Mol.sort(key=lambda tup: tup[0])
+  else:
+    Saved_Mol.sort(key=lambda tup: tup[3])
+
+  saved_sdf = Chem.SDWriter(prefix+'.consensus.sdf')
+  for M in Saved_Mol: saved_sdf.write(M[2])
+
+
+##########################################################################
+
+if __name__ == '__main__':
+  main(sys.argv[1], sys.argv[2], sys.argv[3], float(sys.argv[4]))

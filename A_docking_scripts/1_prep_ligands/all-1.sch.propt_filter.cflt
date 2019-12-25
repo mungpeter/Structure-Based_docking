@@ -1,0 +1,5 @@
+Molecular_weight	> 700
+Molecular_weight	< 200
+Num_atoms		< 15
+Num_aromatic_rings	< 1
+Num_rings		< 1

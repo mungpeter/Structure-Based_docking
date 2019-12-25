@@ -1,0 +1,97 @@
+#!/bin/csh
+
+#BSUB -L /bin/csh
+#BSUB -o %J.out
+#BSUB -e %J.err
+#BSUB -B
+#BSUB -N
+#BSUB -u pmung@umich.edu
+#BSUB -J JBNAME
+
+#BSUB -P acc_schlea02a 
+#BSUB -q premium	# alloc / premium (1.5x)/ expressalloc (2h max)/ low
+#BSUB -W 2:00          # Wall clock limit for job
+#BSUB -n 12              # Number of CPU cores required
+#BSUB -R "span[ptile=12]"        # Run [ptile] number of MPI task per node
+
+## For Minerva Cluster Use
+
+module load schrodinger/2019-1
+
+##########################################################################
+# set shell variables (job name, running, working directories, etc)
+set userdir = /hpc/users/ungp01
+set homedir = $userdir/0_ligprep
+set workdir = /sc/hydra/scratch/ungp01/0_ligprep
+set smi_dir = $homedir
+#set ligdir  = '\/sc\/hydra\/projects\/schlea02a\/8_lib\/zinc_frag15\/glide'	# need \
+set localdr = JBNAME
+set schcpu  = 12        # CPU core required
+set schnjob = 12        # split job into subjobs
+
+
+##########################################################################
+#Set procedure to run
+if (! -e $workdir) then
+  mkdir $workdir
+endif
+cd $workdir
+mkdir $localdr
+cd $localdr
+echo `pwd`
+
+# ESSENTIAL. Change schrodinger.hosts file parameters
+#$schdir/make_Sch_host.csh $schhost $schacct $scharch $schcpu \
+#          $schcore $schtime $schhome $schtmp
+
+##########################################################################
+
+# Change schrodinger job input file ligand directory
+
+# Run Schrodinger job
+# from Schoridnger/2016-3, the '-r 1' flag is decrepated. Before, it controls
+# the ring conformation 'add input ring conformation if available'
+# 18.08.22 added property filter to remove useless compds
+#
+time ${SCHRODINGER}/ligprep -WAIT -LOCAL \
+        -i 2   -epik -We,-ph,7.2,-pht,0.3,-ms,1 \
+        -s 1   -t 1 \
+        -bff   16 \
+#        -f $homedir/all-1.sch.propt_filter.cflt \
+        -ismi  $smi_dir/SDIN.smi \
+#	-isd   /sc/hydra/projects/schlea02a/8_lib/zinc_lead13/glide/SDIN.sch.sdf.gz \
+#        -osd   SDIN.sdf.gz \
+        -osd   SDIN.sch.sdf.gz \
+        -HOST  localhost:$schcpu \
+        -NJOBS $schnjob
+echo $!
+
+#  $SCHRODINGER/utilities/canvasSearch -WAIT -LOCAL \
+#        -isd   SDIN.sdf.gz \
+#        -osd   SDIN.sch.sdf.gz \
+#        -osd2  SDIN.fail.sdf.gz \
+#        -filter  \
+#        -file  $homedir/all-1.sch.pains_filter.cflt \
+#        -JOB   JBNAME \
+#        -HOST  localhost:$schcpu 
+  
+
+@ i = 1
+while ($i >= 1)
+  echo check-time $i `date`
+  if (! -e SDIN.sch.sdf.gz ) then 
+    @ i++  
+    sleep 3m
+  else
+    @ i = 0
+    sleep 5m
+    echo finished, bkill JBNAME `date`
+    bkill -J JBNAME
+    echo pass bkill `date`
+    exit
+    echo exit `date`
+  endif
+end
+
+exit
+

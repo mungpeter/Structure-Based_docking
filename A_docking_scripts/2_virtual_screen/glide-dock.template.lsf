@@ -1,0 +1,92 @@
+#!/bin/csh
+
+#BSUB -L /bin/csh
+#BSUB -o %J.out
+#BSUB -e %J.err
+#BSUB -B
+#BSUB -N
+#BSUB -u peter.ung@mssm.edu
+#BSUB -J JBNAME
+
+#BSUB -P acc_schlea02a 
+#BSUB -q premium	# alloc / premium (1.5x)/ expressalloc (2h max)/ low
+#BSUB -W 6:0		# Wall clock limit for job (hour)
+#BSUB -n 4		# Number of CPU cores required
+#BSUB -R "span[ptile=4]"	# Run [ptile] number of MPI task per node
+
+## For Minerva Cluster Use
+module load schrodinger/2019-1
+
+##########################################################################
+# set shell variables (job name, running, working directories, etc)
+set homedir = '/hpc/users/ungp01/1_kinase/1_super'	# Home directory of job
+set workdir = '/sc/hydra/scratch/ungp01/1_super'	# Work directory in Scratch
+#set workdir = '/sc/hydra/projects/schlea02a/1_pmung/1_kinase/1_super'
+set griddir = '\/hpc\/users\/ungp01\/1_kinase\/1_super\/PDBDIRECTORY' # Glide Grid dir: need \
+#set ligdir  = '\/sc\/hydra\/projects\/schlea02a\/8_lib\/zld19\/glide'  # LigDB: need \
+set ligdir  = '\/sc\/hydra\/projects\/schlea02a\/8_lib'  # LigDB: need \
+
+#set ligdir = '\/hpc\/users\/ungp01\/0_ligprep\/' # directory to find ligand
+set schcpu  = 4                # number of CPU cores required
+
+set localdr = JBNAME
+
+##########################################################################
+#Set procedure to run
+if (! -e $workdir) then
+  mkdir $workdir
+endif
+cd $workdir
+if (! -e $localdr) then
+  mkdir $localdr
+endif
+cd $localdr
+echo `pwd`
+
+# ESSENTIAL. Create schrodinger.hosts file in working directory for Schrodinger 
+# CHANGE -- after 2016-3, no need for schrodinger.host
+#$schdir/make_Sch_host.csh $schhost $schacct $scharch $schcpu \
+#          $schcore $schtime $schhome $schtmp
+
+##########################################################################
+# Change schrodinger job input file Ligand Directory
+sed "s/XDIRECTORY/$ligdir/g" $homedir/INP | \
+sed "s/HOMEDIR/$griddir/g" > ./INP
+
+# Run Schrodinger job
+time ${SCHRODINGER}/glide INP \
+        -WAIT -SAVE -LOCAL -SUBLOCAL -OVERWRITE \
+        -noforce \
+        -HOST localhost:$schcpu \
+        -NJOBS $schcpu
+
+#$homedir/glide_clean_folder.csh $homedir/JBNAME.clean
+echo $!
+sleep 5m
+
+@ i = 1
+set naming = `basename INP .in`
+while ($i >= 1)
+  echo check-time $i `date`
+  if (! -e $naming.log ) then
+    echo Glide job failed without writing LOG
+    bkill -J JBNAME
+  else if (! -e $naming\_lib.sdfgz ) then
+    @ i++
+    sleep 3
+  else
+    @ i = 0
+    # GLIDE stopped supporting .rept writeout since 2016-3
+    $SCHRODINGER/utilities/glide_sort -norecep -nosort \
+      -r $naming.rept $naming\_lib.sdfgz > xxx
+    echo finished, bkill JBNAME `date`
+    bkill -J JBNAME
+    echo pass bkill `date`
+    exit
+    echo exit `date`
+  endif
+end
+
+
+exit
+

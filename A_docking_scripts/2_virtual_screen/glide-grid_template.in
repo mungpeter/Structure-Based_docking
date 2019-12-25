@@ -1,0 +1,22 @@
+GRIDFILE   GNAME.grid.zip
+RECEP_FILE   GPROTNAME
+
+## Univesal grid center for all conformations
+GRID_CENTER   8.5, 7.5, -1.5
+
+INNERBOX   8, 8, 15
+OUTERBOX   25, 25, 33
+
+## Scaled down the threshold and cutoff for kinase dockings, esp DFG-out
+## CIDO	
+RECEP_VSCALE   0.75
+RECEP_CCUT   0.25
+
+## CODI
+#RECEP_VSCALE   0.90
+#RECEP_CCUT   0.25
+
+
+POSIT_CONSTRAINTS   "hinge 2.20 8.65 3.04 4.00", "dfg 8.33 8.72 -6.30 3.00"
+
+#HBOND_CONSTRAINTS   "A:MET:80:O(hbond) 1295", "A:MET:80:H(hbond) 1300"

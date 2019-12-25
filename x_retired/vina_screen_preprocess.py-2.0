@@ -1,0 +1,52 @@
+#!/usr/bin/python
+
+##########################################
+##
+##	Peter M.U. Ung @ MSSM
+##
+##	v1.0	- 13.10.30
+##	v2.0	- 13.11.07 - added ability to ready multiple directories
+##
+##	Preprocess the VINA docking results to generate a txt file with
+##	vina score and filename to speed up ranking process
+##
+##########################################
+
+import re
+import sys
+import glob
+
+if len(sys.argv) < 2:
+  msg = """\n  ## Usage: x.py [home dir with dir of pdbqt files] ##
+              e.g. /> x.py 21_p0.1 21_p0.2 21_p0.3
+	      e.g. /> x.py "21_p0.*" \n\n"""
+  sys.exit(msg)
+
+
+All_Files = []
+Dir_Names = []
+sys.argv.pop()
+for x in sys.argv:
+  Dir_Names = glob.glob(x)
+  print '  ## Found '+str(len(Dir_Names))+' directory'
+
+  Files = []
+  for directory in Dir_Names:
+    Files = glob.glob(directory+'/*.pdbqt')
+    All_Files.append([directory, Files])
+    print '  ## Found '+str(len(Files))+' pdbqt files in: '+d+' ##'
+  
+for Item in All_Files:
+  OUT = open(Item[0]+'.vina_score.txt', 'w')
+
+  for idx, pdbqt in enumerate(Item[1]):
+    with open(pdbqt, 'rh') as f:
+        for line in f:
+            if re.search(r'VINA', line):
+                result = str(line.split(':')[1].split()[0])
+                OUT.write( pdbqt+'::'+result+"\n") 
+                break
+    
+    if idx % 1000 == 0: print idx
+
+OUT.close()

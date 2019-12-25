@@ -1,0 +1,76 @@
+#!/usr/bin/python
+
+##########################################
+##
+##	Peter M.U. Ung @ MSSM
+##
+##	v1.0	- 13.10.30
+##	v2.0	- 13.11.07 - added ability to ready multiple directories
+##
+##	v3.0	- 13.11.16 - this is a NEW script
+##
+##	Read in the individual vina-score files in each designated folder 
+##	and generate a single vina-score file.
+##	The finalized vina-score.txt will be put into the /result folder
+##	This script will parse the vina-score.txt to look for molecules that
+##	Vina has failed to dock the first run. 
+##	
+##	The individual vina-score files should have extension ".temp"
+##	and the finalized vina-score file will have extension ".vina_score.txt"
+##
+##	## for versions before v3.0
+##	## Preprocess the VINA docking results to generate a txt file with
+##	## vina score and filename to speed up ranking process
+##
+##########################################
+
+import re
+import sys
+import glob
+
+if len(sys.argv) < 2:
+  msg = """\n  ## Usage: x.py [directories with docked pdbqt files] ##
+              e.g. /> x.py 21_p0.1 21_p0.2 21_p0.3
+	      e.g. /> x.py "21_p0.*" \n\n"""
+  sys.exit(msg)
+
+
+############################################################################
+All_Files = []
+Dir_Names = []
+sys.argv.pop(0)
+for x in sys.argv:
+  Dir_Names = glob.glob(x)
+  print '  ## Found '+str(len(Dir_Names))+' directory ##'
+  print Dir_Names
+
+  Files = []
+  for directory in Dir_Names:
+    Files = glob.glob(directory+'/*.temp')
+    All_Files.append([directory, Files])
+    print '  ## Found '+str(len(Files))+' Vina Score files in: '+directory+' ##'
+  
+
+############################################################################
+for Temp_Files in All_Files:
+  SCORE  = open(Temp_Files[0]+'/'+Temp_Files[0]+'.vina_score.txt', 'w')
+  FAIL   = open(Temp_Files[0]+'/'+Temp_Files[0]+'.vina_fail.txt', 'w')	# Vina didnt dock
+  Failed = []
+  print "    ## Compiling Vina Scores in "+Temp_Files[0]+" ##"
+
+  for temp_file in Temp_Files[1]:
+    with open(temp_file, 'rh') as f:
+        for line in f:
+            Items = line.split('::')
+	    if not re.search(r'VINA', Items[1]):
+	        Failed.append(Items[0]+"\n")
+	    else:
+                SCORE.write(line)
+  print "      ## Generated "+Temp_Files[0]+".vina_score.txt ##"
+  print "      ## "+Temp_Files[0]+" has "+str(len(Failed))+" ligands need to redock ##"
+  for x in sorted(Failed): FAIL.write(x)
+  SCORE.close()
+  FAIL.close()
+
+print "\n### Remember to check the $folder.vina_fail.txt for missing ligands ###\n"
+

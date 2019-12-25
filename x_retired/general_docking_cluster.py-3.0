@@ -1,0 +1,351 @@
+#!/usr/bin/env python
+
+###########################################################################
+##
+##	Peter M.U. Ung @ MSSM
+##
+##	v1.0	- 13.11.21
+##      v2.0    - 14.11.06 - corrected a bug that generate 1 fewer ligand
+##                           in each multi-ligand cluster. Now generate a
+##                           SDF file with 'cluster tag'.
+##      v3.0    - 14.12.03 - revamped the flow of the script so that some
+##                           components can be reused
+##
+##	Purpose: Summerize docking result with Chemical similarity, Rank
+##		 the results by clusters and the first set of docking inputs
+##
+##		 Should be able to take in all SDF from different docking 
+##		 programs if processed to give the naming format.
+##
+##	Read in a SDF file with multiple structures generated from 
+##	Docking processing (molecule name will contain ZINC ID, Rank, 
+##	Score (1 decimal place), Type).
+##	1) For each molecule calculate the 2D fingerprint
+##	2) Cluster molecules based on Tanimoto similarity.
+##	3) Sort each cluster by size of cluster (except the last group; each
+##	   mol in this group has no cluster partner)
+##	4) 3 Output: a) reordered Mol file according to cluster
+##		     b) 2D Image of the clustered compounds
+##		     c) HTML page that contact links to the 2D images
+##
+##	Required:	1_vina_screen_preprocess.py
+##			2_vina_screen_get_top.py
+##			3_vina_screen_extract_mol.pl
+##			other docking processing scripts
+##			  *.top$i.txt
+##
+##	** The name of the Molecules in the input SDF file must have
+##	   this format:
+##	     -- (Mol Name, Rank, Score, Type) separated by '::'
+##	   	MOLECULE_NAME::RANK::SCORE::DOCK_TYPE
+##
+##	   e.g. ZINC464618334::22::-12.2::FRED
+##
+##
+##	Options: Daylight-like fingerprint and MACCS keys can be used.
+##
+##
+##	Preset:	ECFP: default radius is 4. FCFP can be used
+##		(Martin YC, Muchmore S. DOI: 10.1002/qsar.200810176)
+##		Similarity Choice: Tanimoto (Default)
+##		Clustering method: Butina Clustering (JCICS 39 747 (1999))
+##
+###########################################################################
+
+import os,sys
+msg = """\n  ## Usage: x.py [Docking inputs: sdf]
+              [Tanimoto Cutoff: float]
+	      [output prefix] [receptor structure: pdb]
+              [Optional: -dl    DayLight Fingerprint      
+                         -ec    ECFP_4 Fingerprint (Default)
+                         -ms    MACCS 166-bit Key ]
+
+              # and output a list of molecule png (temp.$name.png)
+              [png of clustered ligands]
+
+             e.g.>  x.py vina.sdf,fred.sdf,ehits.sdf 
+                         0.4 output.clust-0.4 receptor.pdb -dl\n\n"""
+if len(sys.argv) < 5 or len(sys.argv) > 6: sys.exit(msg)
+
+import re,gzip,bz2,glob,Image,HTML
+import numpy as np
+from CommonUtility import *
+from rdkit_grid_print import *
+from rdkit import Chem
+from rdkit.Chem import Draw
+from rdkit.Chem import AllChem
+
+
+##########################################################################
+## Sort and compare to eliminate duplicate
+## For duplicates, the Type, Rank and Score are combined
+def main(filenames, CUT, OUTPUT_PREFIX, REF_PDB, fingerprint='-ec' ):
+
+  ## Get the docking inputs
+  Dock_Files = [ glob.glob(name)[0] for name in filenames.split(',') ]
+  print Dock_Files
+
+  All_Hit,Multi_Hit = SortDockFiles(Dock_Files)
+
+  ## Make clusters of all imported results
+  output_name = OUTPUT_PREFIX
+  Mol_Cluster = Do_Fp(All_Hit, CUT, output_name, fingerprint)
+  GenPyMOLClust(Mol_Cluster, output_name, REF_PDB)
+  GenClustTable(Mol_Cluster, output_name, column=5)
+
+  ## Show clusters of imported results that have at least 1 overlap
+  if len(Multi_Hit) > 0:
+    output_name = OUTPUT_PREFIX+'.multi-hit'
+    Mol_Cluster = Do_Fp(Multi_Hit, CUT, output_name, fingerprint)
+    GenPyMOLClust(Mol_Cluster, output_name, REF_PDB)
+    GenClustTable(Mol_Cluster, output_name, column=5)
+
+
+
+##########################################################################
+def SortDockFiles(Dock_Files):
+  Mol_Hash = {}	# Hash Table of all available molecule info
+
+  for dock_file in Dock_Files:
+    dock = file_handle(dock_file)
+    Dock = [x for x in Chem.ForwardSDMolSupplier(dock,removeHs=False)
+            if x is not None]
+    print " --> read in from "+dock_file+" : "+str(len(Dock))
+
+    Temp = {}   # Hash Table of current $dock_file 
+    for m in Dock: Temp[m.GetProp('_Name').split('::')[0]] = m
+
+    ## Compare $Mol_Hash and $dock_file hash table
+    ## Find duplicate, append the title, then remove one of the copies
+    for hash_key in Mol_Hash.keys():
+      if not hash_key: break
+      hash_m    = Mol_Hash[hash_key]
+      Hash_Info = hash_m.GetProp('_Name').split('::') # (ZINC, Rank, Score, Type)
+
+      ## If mol is found in the Master, update the existing entry with new name
+      if Temp.get(hash_key):
+        temp_m    = Temp[hash_key]
+        Temp_Info = temp_m.GetProp('_Name').split('::')
+        new_name  = hash_key+'::'+str(Hash_Info[1]+'/'+Temp_Info[1])+'::'+str(Hash_Info[2]+'/'+Temp_Info[2])+'::'+str(Hash_Info[3]+'/'+Temp_Info[3])
+        temp_m.SetProp('_Name', new_name)
+        Mol_Hash[hash_key] = temp_m
+        del Temp[hash_key]	# Remove the duplicate from $dock_file
+
+    ## Unique molecules are added to the Master Hash Table as new entries
+#    new_name = hash_key+'::'+str(Hash_Info[1]+'/')+'::'+str(Hash_Info[2])+'::'+str(Hash_Info[3])
+#    hash_m.SetProp('_Name', new_nm)
+    for temp_key in Temp.keys(): Mol_Hash[temp_key] = Temp[temp_key]
+    print "  ## Added "+str(len(Temp))+" Unique Entries from "+dock_file+" ##"
+
+## Convert Hash back into List. Isolate entries with multiple top hits
+  All_Hit   = []
+  Multi_Hit = []
+  Singl_Hit = []
+  for key in Mol_Hash.keys():
+    m = Mol_Hash[key]
+    All_Hit.append(m)
+    if re.search(r'/', m.GetProp('_Name')):
+      Multi_Hit.append(m)
+    else:
+      Singl_Hit.append(m)
+  print "  ### Unique Entries Found: "+str(len(Multi_Hit)+len(Singl_Hit))+" ###\n"
+  print "  ### "+str(len(Multi_Hit))+" Entries have < 1+ > occurances ###"
+  print "  ### "+str(len(Singl_Hit))+" Entries have < 1  > occurance  ###\n"
+ 
+  return All_Hit, Multi_Hit
+
+
+########################################################################
+########################################################################
+
+def Do_Fp (Mol, cutoff, output_name, fingerprint):
+  if fingerprint == '-dl':
+    #### Daylight-like fingerprint ####
+    from rdkit.Chem.Fingerprints import FingerprintMols
+    print '  -- Calculating with DayLight-like Fingerprint --'
+    Fp = [FingerprintMols.FingerprintMol(x) for x in Mol]
+
+  if fingerprint == '-ec':
+    #### Morgan (ECFP-like) fingerprint ####
+    print '  -- Calculating with Morgan (ECFP_4) Fingerprint --'
+    Fp = [AllChem.GetMorganFingerprintAsBitVect(x, 2, 2048) for x in Mol]
+
+  if fingerprint == '-ms':
+    #### MACCS 166-bit keys ####
+    from rdkit.Chem import MACCSkeys
+    print '  -- Calculating with MACCS 166-bit Keys --'
+    Fp = [MACCSkeys.GenMACCSKeys(x) for x in Mol]
+
+    # Cluster based on fingerprints 
+  Cluster_List = ClusterFps(Fp, cutoff)
+
+
+  #####################################################################
+  ## Build a List of array of clusters Clusters = [[clust1], [clust2], [clust3], ...]
+  M_Clusters = []
+  for cluster, List in enumerate(Cluster_List):
+    if len(List) > 1:
+      M_Temp = []
+      for clust_id in List:
+        M_Temp.append(Mol[clust_id])
+      M_Clusters.append(M_Temp)
+    else:
+      M_Clusters.append([Mol[List[0]]])
+  print "  ## No. of cluster: "+str(len(M_Clusters))+" for Tc = "+str(cutoff)+" ##\n"
+
+  ## Generate table of clustered molecules
+  Multi_list  = []		# List of all clusters
+  Single_list = []	# Mol that are scored as a single cluster
+
+  for Cluster in M_Clusters:
+    # If the cluster has multiple members, rank them based on average of all ranks
+    if len(Cluster) == 1:
+      m = Cluster[0]
+      i = m.GetProp("_Name")
+      if re.search(r'::', i):
+        s = i.split('::')
+        r = 0.0
+        if re.search(r'/', s[1]): # If Rank has '/', that means it has multiple hits
+          Y = [float(x) for x in s[1].split('/')]
+          r = str(np.average(Y))
+        else:			# otherwise, divide the rank by 2
+          r = str(float(s[1])/2.0)
+        mol = MolSetProp(m, s[0],s[1],s[2],s[3],r)
+        Single_list.append([mol,s[0],s[1],s[2],s[3],r])	#(Mol, Name, Rank, Score, Type, rank_avg)
+      else:
+        mol = MolSetProp(m, i,'','','','')
+        Single_list.append([mol, i,'','','',0])
+    else:
+      clust_list = []
+      for m in Cluster:
+        i = m.GetProp("_Name")
+        if re.search(r'::', i):
+          s = i.split('::')
+          r = 0.0
+          if re.search(r'/', s[1]):
+            Y = [float(x) for x in s[1].split('/')]
+            r = str(np.average(Y))
+          else:
+            r = str(float(s[1])/2.0)
+          ## [mol_data, Name, Rank, Score, Type, rank_avg]
+          mol = MolSetProp(m, s[0],s[1],s[2],s[3],r)
+          clust_list.append([mol,s[0],s[1],s[2],s[3],r])
+        else:
+          mol = MolSetProp(m, i, '', '', '', '')
+          clust_list.append([mol, i,'','','',0])
+      Multi_list.append(clust_list)
+
+  Multi_list.append(Single_list)
+
+  # Sort each cluster and save only the molecules, not additional info
+  Mol_List = []
+  for List in Multi_list:
+    List.sort(key=lambda rank: float(rank[5]))
+    Mol_List.append([Item[0] for Item in List])
+
+  return Mol_List
+
+
+#####################################################################
+def MolSetProp(mol, name, rank, score, s_type, r_avg):
+  mol.SetProp('Name', name)
+  mol.SetProp('Rank', rank)
+  mol.SetProp('Score',score)
+  mol.SetProp('Type', s_type)
+  mol.SetProp('RankAvg', r_avg)
+  return mol
+
+
+##########################################################################
+## Takes in a molecular list that has list of lists (clusters of molecules)
+## and generate a HTML-based table
+def GenPyMOLClust(Mol_List, output_name, ref_pdb):
+  pymol_pml = open(output_name+".pml", 'w')
+  m_out     = Chem.SDWriter(output_name+'.sdf')
+
+  pymol_pml.write("load "+ref_pdb+"\nshow cartoon, poly\nhide lines\n")
+  for idx, Mols in enumerate(Mol_List):
+    pse_sdf = Chem.SDWriter('_TEMP.clust.{0}.sdf'.format(idx))
+    for mol in Mols: 
+      pse_sdf.write(mol)
+      m_out.write(mol)
+
+    pse_sdf.close()
+    pymol_pml.write("load _TEMP.clust."+str(idx)+".sdf, clust."+str(idx+1)+"\n")
+    pymol_pml.write("dist HB."+str(idx+1)+", poly, clust."+str(idx+1)+", mode=2\n")
+  pymol_pml.write("show sticks, org\nsave "+output_name+".pse\nquit\n")
+  pymol_pml.flush()
+  pymol_pml.close()
+  m_out.flush()
+  m_out.close()
+
+  os.system("pymol -c {0}.pml".format(output_name))
+  os.system("rm ./_TEMP.clust.*.sdf")
+  os.system("rm {0}.pml".format(output_name))
+
+##########################################################################
+def GenClustTable(Mol_List, output_name, column=5):
+  Img_Data = []
+  for idx, Mols in enumerate(Mol_List):
+    Img = []
+
+    for mol in Mols:
+     # Get molecule info
+      m1 = mol.GetProp('Name')
+      m2 = mol.GetProp('Rank')
+      m3 = mol.GetProp('Score')
+      m4 = mol.GetProp('Type')
+
+     # Create tag and write out to sdf file
+      mol.SetProp('Cluster', str(idx+1))
+      mol.SetProp('SMILES' , Chem.MolToSmiles(mol))
+
+      img_name = '_TEMP.'+m1+'.png'
+      AllChem.Compute2DCoords(mol)
+      Draw.MolToFile(mol, img_name, size=(200,200))
+      img_link = '<img src="'+img_name+'">'
+          # Img = (image_link, Name, Rank, Score, Type)
+      Img.append([img_link, m1, m2, m3, m4])
+
+    Img_Data.append(Img)
+ 
+## Print out a HTML page, in which every row has a maximum of 5 compound png.
+## Every major cluster of compounds is grouped together.
+## List the Name of the compound, then the Rank and Score.
+
+  grid_print(output_name, Img_Data, 'formatted', column=5)
+
+#  os.system('rm ./_TEMP.*.png')
+#  os.system('rm ./{0}.html'.format(output_name))
+
+
+#######################################################################
+#######################################################################
+## Cluster Molecules based on Fingerprint
+def ClusterFps(Fp, cutoff):
+    from rdkit import DataStructs
+    from rdkit.ML.Cluster import Butina
+
+    # first generate the distance matrix:
+    dists = []
+    nfps = len(Fp)
+    for i in range(1,nfps):
+        sims = DataStructs.BulkTanimotoSimilarity(Fp[i], Fp[:i])
+        dists.extend([1-x for x in sims])
+
+    # now cluster the data:
+    cs = Butina.ClusterData(dists, nfps, cutoff, isDistData=True)
+    return cs
+
+
+########################################################################
+
+
+if __name__ == '__main__':
+  if len(sys.argv) == 5:
+    main( sys.argv[1], 1-float(sys.argv[2]), sys.argv[3], 
+            sys.argv[4] )
+
+  if len(sys.argv) == 6:
+    main( sys.argv[1], 1-float(sys.argv[2]), sys.argv[3], 
+        sys.argv[4], fingerprint=sys.argv[5])

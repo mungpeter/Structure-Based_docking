@@ -1,0 +1,77 @@
+#!/usr/bin/python
+
+#########################################################################
+##
+##	Peter M.U. Ung @MSSM
+##
+##	14.01.10
+##
+##	Calculate chemical similarity coefficient of 2 sets of input molecules
+##	Takes gzip or bzip2 files of both SDF (.sdf) and SMILES (.smi) formats.
+##	Files can contain multiple molecules.
+##
+##	For smiles, must have title line as first line.
+##
+#########################################################################
+
+import sys
+msg = '''\n  ## Usage: {0}
+             [Template MOL] [Compare MOL]  (.smi, .sdf, multi-mol file ok)
+             [output filename]\n
+             e.g.>  x.py a.smi b.sdf output.txt
+             For smiles, must have title line as first line\n'''.format(sys.argv[0])
+
+if len(sys.argv) != 4: sys.exit(msg)
+
+import re,gzip,bz2
+from rdkit import Chem
+from rdkit import DataStructs
+from rdkit_open import *
+
+from rdkit.Chem.Fingerprints import FingerprintMols
+from rdkit.Chem import MACCSkeys
+from rdkit.Chem import AllChem
+from CommonUtility import *
+
+##########################################################################
+def ChemicalSimilarity(MOL):
+  FP = []
+  fp_list = ['ECFP_4  ', 'Daylight', 'MACCS   ']
+  Result = []
+  for mol in MOL:
+    FP.append( [ AllChem.GetMorganFingerprintAsBitVect(mol, 2, 2048),
+            FingerprintMols.FingerprintMol(mol),
+                 MACCSkeys.GenMACCSKeys(mol) ])
+  for x in range(3):
+    coeff = DataStructs.FingerprintSimilarity(FP[0][x], FP[1][x])
+    Result.append(coeff)
+#    print "    "+fp_list[x]+" = "+str(coeff)
+  return Result
+
+##########################################################################
+
+MOL = []
+for item in [sys.argv[1], sys.argv[2]]:
+  M = rdkit_open([item])
+  MOL.append(M)
+
+fo = open(sys.argv[3], 'w')
+fo.write('id\tECFP_4\tDL\tMACCS\tTotal\tSMILES\n')
+for mol_1 in MOL[0]:
+  try: mol_1.GetProp('_Name')
+  except AttributeError:
+    print " --> [cannot find Name but keep pressing on]"
+  else:
+    fo.write("- {0}\n".format(mol_1.GetProp('_Name')))
+  
+  for mol_2 in MOL[1]:
+    try: mol_2.GetProp('_Name')
+    except AttributeError:
+      print " - [cannot find Name but keep pressing on]"
+    else:
+      fo.write("{0}\t".format(mol_2.GetProp('_Name')))
+    S = ChemicalSimilarity([mol_1, mol_2])
+    fo.write('{0:.3f}\t{1:.3f}\t{2:.3f}\t{3:.3f}\t{4}\n'.format(S[0], S[1], S[2], 
+               S[0]+S[1]+S[2], Chem.MolToSmiles(mol_2)))
+
+fo.close()

@@ -1,0 +1,61 @@
+#!/bin/csh 
+
+#BSUB -L /bin/csh
+#BSUB -o %J.out
+#BSUB -e %J.err
+#BSUB -B 
+#BSUB -N
+#BSUB -u ungp01
+#BSUB -J FOLDER
+
+#BSUB -P acc_schlea02a
+##BSUB -q scavenger          # alloc / scavenger
+#BSUB -q premium
+##BSUB -m mothra		# New Intel (mothra); Legacy AMD (manda)
+#BSUB -W 48:00          # Wall clock limit for job
+#BSUB -n 12              # Number of CPU cores required
+#BSUB -R "span[ptile=12]"        # Run [ptile] number of MPI task per node
+
+## For Minerva Cluster Use
+## Openeye 
+setenv OE_DIR /hpc/users/ungp01/openeye
+setenv OE_LICENSE $OE_DIR/oe_license.txt
+setenv OE_ARCH redhat-RHEL6-x64
+set path = ( $path $OE_DIR/bin )
+
+
+set work  = /hpc/users/ungp01/1_kinase/1_super/FOLDER	# Work Directory
+set local = /sc/hydra/scratch/ungp01/1_kinase/FOLDER	# Scratch work dir
+set lib   = /sc/hydra/projects/schlea02a/8_lib/zinc15_lead16/fred	# Ligand Directory
+#set lib   = /sc/hydra/projects/schlea02a/8_lib/zinc_lead13/openeye
+
+set prot  = PROT
+set name1 = `basename $prot .oeb.gz`
+
+set dbase = LIG
+set name2 = `basename $dbase .oeb.gz`
+
+set hit   = HIT		# Hit return size
+set pref  = $name1.$name2	# Prefix for result files
+set dock  = $name1.$name2.fred_docked.sdf
+set score = $name1.$name2.fred_docked.txt
+set cpu   = '12'
+
+
+#######################################################################
+if (! -e $local) then
+  mkdir $local
+endif
+cd $local
+
+# timeout 4h \
+  oempirun -np $cpu fred   \
+    -receptor $work/$prot  \
+    -dbase $lib/$dbase     \
+    -hitlist_size $hit     \
+    -prefix $pref 	        \
+    -docked_molecule_file $dock \
+    -score_file $score 
+
+  bzip2 $score $dock
+exit

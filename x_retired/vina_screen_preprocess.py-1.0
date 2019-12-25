@@ -1,0 +1,37 @@
+#!/usr/bin/python
+
+##########################################
+##
+##	Peter M.U. Ung @ MSSM
+##
+##	v1.0	- 13.10.30
+##
+##	Preprocess the VINA docking results to generate a txt file with
+##	vina score and filename to speed up ranking process
+##
+##########################################
+
+import re
+import sys
+import glob
+
+if len(sys.argv) != 2:
+  msg = "\n  ## Usage: x.py [home dir with dir of pdbqt files] ##\n\n"
+  sys.exit(msg)
+
+file_names = glob.glob(sys.argv[1]+'/*.pdbqt')
+print 'Found', len(file_names), 'pdbqt files'
+
+OUT = open(sys.argv[1]+'.vina_score.txt', 'w')
+
+for idx, file_name in enumerate(file_names):
+    with open(file_name, 'rh') as f:
+        for line in f:
+            if re.search(r'VINA', line):
+                result = str(line.split(':')[1].split()[0])
+                OUT.write( file_name+'::'+result+"\n") 
+                break
+    
+    if idx % 1000 == 0: print idx
+
+OUT.close()
