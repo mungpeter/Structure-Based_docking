@@ -6,8 +6,10 @@ There are 2 major folders with _primary running_ scripts (**A_docking_scripts** 
 
 ```
   /A_docking_scripts   --   Setting up and running of docking
-      |------ /1_prep_ligands
-      |------ /2_virtual_screen
+      |------ /1_prep_ligands             - scripts to prepare ligand for docking
+      |------ /2_virtual_screen           - scripts to run docking
+      |------ /3_conformer_gen            - generate 3D conformers
+                    |------ /CSD_confgen  - CSD's generator
 
   /B_collect_scripts   --   Collecting the docking results
 
