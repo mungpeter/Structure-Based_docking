@@ -14,6 +14,7 @@ There are 2 major folders with _primary running_ scripts (**A_docking_scripts** 
   /B_collect_scripts   --   Collecting the docking results
 
   /Z_misc_scripts      --   collection of less used scripts to manage docking results
+  
   /Examples
       |------ /1_prep_ligands             - prepare ligand library
       |------ /2_virtual_screen           - running docking
