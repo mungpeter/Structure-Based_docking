@@ -82,7 +82,7 @@ echo $!
 #        -HOST  localhost:$schcpu
 ```
 
-- To run this in batch mode on a HPC cluster, use the shell script to modify the template LSF script and submit the jobs:
+- To run this in batch mode on a HPC cluster, use the shell script **run_ligprep_lsf.csh** to modify the template LSF script and submit the jobs:
 ```
 > A_docking_scripts
         |---- /1_prep_ligands
@@ -110,7 +110,7 @@ omega2 \
   -strict   false
 ```
 
-- To run this in batch mode on a HPC cluster, use the shell script to modify the template LSF script and submit the jobs:
+- To run this in batch mode on a HPC cluster, use the shell script **run_omega_lsf.csh** to modify the template LSF script and submit the jobs:
 ```
 > A_docking_scripts
         |---- /1_prep_ligands
@@ -131,7 +131,7 @@ omega2 \
 
 - **Docking** - this is done through the command-line program *fred*. The default setup will work for 99% of the case. Write out the docking results to **sdf.gz** format, not the *oeb.gz* format. Be sure to change the **-hitlist_size** to **0** (save all), otherwise only _500_ (default) will be saved and the rest are lost.
 
-- To run this in batch mode on a HPC cluster, use the shell script to modify the template LSF script and submit the jobs:
+- To run this in batch mode on a HPC cluster, use the shell script **fred_submit_lsf.csh** to modify the template LSF script and submit the jobs:
 ```
 > A_docking_scripts
         |---- /2_virtual_screen
@@ -152,7 +152,7 @@ omega2 \
 
 - **Docking** - the default _Standard Precision (SP)_ setting works for most cases. **Do not** use _High-throughput virtual screen (HTVS)_ setting to "save time" as the manual recommended. Tried it and this setting failed to capture many known ligands even in the top 50% ranking. **Extreme Precision (XP)** is useless and slow for most cases as it uses very harsh and rigid vdw scaling, which fails in most cases too. Only ever use it if you are working on a congeneric series of a scaffold that is developed based on a crystal structure. **Always** turn on **Aromatic H** and **Halogen bonds** options. Can use constraints previously defined in Grid generation by requiring _X_ of _n_ constraints must be fulfilled. Also, save the docking results with **no** receptor pose, and in **SDF** format, don't use **MAE** format.
 
-- To run this in batch mode on a HPC cluster, use the shell script to modify the template LSF script and submit the jobs:
+- To run this in batch mode on a HPC cluster, use the shell script **glide_submit_lsf.csh** to modify the template LSF script and submit the jobs. Schrödinger does not write out a readable score file (.rept) like it used to after ~ ver.2016-09, and the pose files are in .gz format. The data will need to be cleaned up to get the more compact .bz2 format and to extract the scores from the pose files. Run the **glide_clean_folder.csh** with a list of the docking folder name (concatinate the _*.clean_ files generated during the initial submission step) to get the **/1_data** folder with all the cleaned data.
 ```
 > A_docking_scripts
         |---- /2_virtual_screen
