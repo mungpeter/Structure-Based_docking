@@ -49,7 +49,7 @@ There are 2 major folders with _primary running_ scripts (**A_docking_scripts** 
 - for **lead-like** (300 < MW <= 450) and **fragment-like** (MW <= 300) libraries, keep each subset file at 100,000 mol max.
 - for **drug-like** (MW > 450) library, keep each subset file at  80,000 mol max.
 
-                      #################################
+#################################
 
 **Prepare ligand library for Glide docking**
 
@@ -90,7 +90,7 @@ echo $!
                     |---- ligprep.tmpl.lsf
 ```
 
-                      #################################
+#################################
 
 **Prepare ligand library for OpenEye Docking**
 
@@ -139,7 +139,7 @@ omega2 \
                     |---- fred_docking.repeat.lsf
 ```
 
-                      #################################
+#################################
 
 ```
 > ${SCHRODINGER}/glide  glide-grid_generation.inp
@@ -165,7 +165,7 @@ omega2 \
                     |---- glide_clean_score.py     # make readable Glide score file
 ```
 
-                      #################################
+#################################
 
 ```
 > ${SCHRODINGER}/ifd
@@ -205,7 +205,7 @@ omega2 \
 > test.sch_docked.txt.bz2
 > test.sch_docked.sdf.bz2
 
-                      #################################
+#################################
 
 ```
 > B_collect_scripts/7_general_docking_cluster.py
@@ -229,7 +229,7 @@ omega2 \
 ```
 - Cluster the supplied molecules using a _fingerprint-based chemical similarity_ method with a user-defined Tanimoto cutoff value. A value of **0.40** works for most cases of lead-/drug-like molecules (MW 300-500+), while fragment-like may need a lower value, e.g. 0.37. The clustered results are placed into a PyMOL session file and the docking receptor is used. The clustered molecules are also output into a PDF file.
 
-                      #################################
+#################################
 
 ```
 > B_collect_scripts/9_consensus_best_pose.py
@@ -252,7 +252,7 @@ omega2 \
  ```
 - Perform a consensus of results from a set of dockings to a single receptor. A molecule has to be in the top <X>% of <Y> number of model to be considered in the consensus result. For each molecule, the highest ranking score and pose is saved. The final consensus is the ranking of the single best pose or the average of rank, tho single best rank is better overall. SDF and Score files used must have same prefix.
 
-                      #################################
+#################################
 
 # Collecting Results of Schrodinger Induced-Fit Docking (IFD)
 ```
