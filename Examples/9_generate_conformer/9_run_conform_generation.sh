@@ -6,7 +6,7 @@
 ## Around 1.5s per molecules in the lead-like range (5-8 rb)
 ## Definitely not optimal for large volume generation
 
-../../A_docking_scripts/3_conformer_gen/3_conformer_gen.py    \
+../../A_docking_scripts/3_conformer_gen/3_rdkit_conformer_gen.py    \
   -in antibiotics_small.sdf.bz2   \
   -out test_small                 \
   -rmsd .62                       \
