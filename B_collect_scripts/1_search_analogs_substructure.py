@@ -39,23 +39,7 @@ from pathos import multiprocessing
 ##########################################################################
 def main( filename, strings, prefixes, ext ):
 
-  if re.search(r'\.sdf', filename):
-    df = rdpd.LoadSDF( file_handle(filename), 
-                       smilesName='smiles', molColName='mol',
-                       includeFingerprints=True, removeHs=True )
-
-  if re.search(r'\.smi', filename):
-    with file_handle(filename) as fi:
-      if re.search('smi', str(fi.readline()), re.IGNORECASE):
-        print('\n # Smiles input has Header #')
-        df = pd.read_csv(filename, sep='\s+', comment='#').dropna()
-        df.columns = ['smiles','ID']
-      else:
-        print('\n # Smiles input has NO Header #')
-        df = pd.read_csv(filename, header=None, sep='\s+', comment='#').dropna()
-        df.columns = ['smiles','ID']
-    rdpd.AddMoleculeColumnToFrame(df,'smiles','mol', includeFingerprints=True)
-
+  df = RDkitRead(filename, keep_Hs=False)
   print('## Number of mol read from {}: {}\n'.format(filename,len(df.smiles)))
 
   SMARTS   = strings.split(',')
@@ -103,8 +87,35 @@ class SMARTSSearch(object):
                                     isomericSmiles=True)
 
 
-
 ##########################################################################
+## Read in SMILES or SDF input and add Hs to it
+def RDkitRead( in_file, keep_Hs=True, add_Hs=False ):
+  ## Read in SDF file; can choose to add hydrogens or not
+  if re.search(r'.sdf', in_file):
+    print(' # Reading SDF')
+    df = rdpd.LoadSDF(  file_handle(in_file), removeHs=keep_Hs,
+                        smilesName='smiles', molColName='mol' )
+    if add_Hs:
+      df['mol'] = df.mol.apply(Chem.AddHs)
+
+  ## Read in SMILES file, check if there is a header "smiles"
+  if re.search(r'.smi', in_file):
+    print('# Reading SMI')
+    with file_handle(in_file) as fi:
+      if re.search('smi', str(fi.readline()), re.IGNORECASE):
+        print('\n # Smiles input has Header #\n')
+        df = pd.read_csv(in_file, sep='\s+', comment='#').dropna()
+        df.columns = ['smiles','ID']
+      else:
+        print('\n # Smiles input has NO Header #\n')
+        df = pd.read_csv(in_file, header=None, sep='\s+', comment='#').dropna()
+        df.columns = ['smiles','ID']
+    df['mol'] = df.smiles.apply(Chem.MolFromSmiles)
+
+  print('## Number of MOL read from {}: {}\n'.format(in_file,len(df.smiles)))
+  return df
+
+#########################################################################
 ## Handle gzip and bzip2 file if the extension is right. otherwise, just open
 ## outuput: file handle
 def file_handle(file_name):
@@ -113,8 +124,10 @@ def file_handle(file_name):
   elif re.search(r'.bz2$', file_name):
     handle = bz2.BZ2File(file_name, 'rb')
   else:
-    handle = open(file_name, 'rb')
-
+    if re.search(r'.smi', file_name):
+      handle = open(file_name, 'r')
+    else:
+      handle = file_name
   return handle
 
 

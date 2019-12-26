@@ -1,13 +1,13 @@
-load 5ul9_prep.pdb.bz2, 5ul9_prep
+load ../recpt.pdb.bz2, recpt
 show cartoon, poly
 hide lines
 color white, poly
 color cyan, org
 show sticks, org and not resn NMA+ACE
-set_bond stick_radius, .15, 5ul9_prep and org
-create ref_lig, 5ul9_prep and org and not resn NMA+ACE
+set_bond stick_radius, .15, recpt and org
+create ref_lig, recpt and org and not resn NMA+ACE
 show lines, byres poly within 5 of ref_lig
-hide sticks, 5ul9_prep and org
+hide sticks, recpt and org
 load single_VS.summary.sch_top1k.sdf, single_VS.summary.sch_top1k
 load _TEMP.clust.0.sdf, clust.1
 dist HB.1, poly, clust.1, mode=2
@@ -305,6 +305,20 @@ load _TEMP.clust.146.sdf, clust.147
 dist HB.147, poly, clust.147, mode=2
 load _TEMP.clust.147.sdf, clust.148
 dist HB.148, poly, clust.148, mode=2
+load _TEMP.clust.148.sdf, clust.149
+dist HB.149, poly, clust.149, mode=2
+load _TEMP.clust.149.sdf, clust.150
+dist HB.150, poly, clust.150, mode=2
+load _TEMP.clust.150.sdf, clust.151
+dist HB.151, poly, clust.151, mode=2
+load _TEMP.clust.151.sdf, clust.152
+dist HB.152, poly, clust.152, mode=2
+load _TEMP.clust.152.sdf, clust.153
+dist HB.153, poly, clust.153, mode=2
+load _TEMP.clust.153.sdf, clust.154
+dist HB.154, poly, clust.154, mode=2
+load _TEMP.clust.154.sdf, clust.155
+dist HB.155, poly, clust.155, mode=2
 show sticks, org
 set valence
 hide (h. and (e. c extend 1))
@@ -318,7 +332,7 @@ set mesh_width, 0.1
 set light_count, 1
 set ray_opaque_background, off
 color white, poly
-color cyan, 5ul9_prep and org
+color cyan, recpt and org
 color cyan, ref_lig
 util.cnc
 set ray_trace_mode, 1

@@ -3,7 +3,7 @@
 ## search the supplied molecules for analogs that match with
 ## Fingerprint similarity >= Tanimoto cutoff 
 
-../../B_collect_scripts/1_FP_search_analogs.py          \
+../../B_collect_scripts/1_search_analogs_FP.py          \
   query_mol.smi                           \
   recpt.zfg19.sch_top500.pick.sdf.bz2     \
   recpt.zfg19.query_search.fp_all_03      \

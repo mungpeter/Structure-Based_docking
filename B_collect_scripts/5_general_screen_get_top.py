@@ -70,41 +70,6 @@ from pathos import multiprocessing
 from argparse import ArgumentParser
 from rdkit_grid_print import grid_print
 
-###########################################################################
-#### Default boundary constant for Histogram and changes ####
-grid= False
-
-def UserInput():
-  p = ArgumentParser(description='Command Line Arguments')
-
-  p.add_argument('-score', dest='all_txt', required=True,
-                  help='Score Files: txt')
-  p.add_argument('-sdf', dest='all_sdf', required=True,
-                  help='sdf files: sdf')
-  p.add_argument('-top', dest='all_top', required=True,
-                  help='Numner of Top mol in output: int')
-  p.add_argument('-dock', dest='dock', required=True,
-                  help='docking software: fred | sch | etc')
-  p.add_argument('-outpref', dest='prefix', required=True,
-                  help='Prefix of Output sdf, png, and txt files')
-
-  p.add_argument('-hmax', dest='hmax', required=False,
-                  help="optional: -hmax=< default fred:-14.0 | sch:-10.0 >: ''-float''")
-  p.add_argument('-hmin', dest='hmin', required=False,
-                  help="optional: -hmin=< default fred: -2.0 | sch:-3.0  >: ''-float''")
-  p.add_argument('-coll', dest='coll', required=False,
-                  help='Optional: -coll=< X times top MOL in mem > default: 2x')
-  p.add_argument('-png', dest='grid', required=False,
-                  help='?? ignore')
-
-  p.add_argument('-exclude', dest='arg_exc', required=False,
-                  help='[Optional: -exclude=<SMARTS filter> (smt-clean)] removal filter')
-  p.add_argument('-select', dest='arg_sel', required=False,
-                  help='[optional: -select=<SMARTS filter>  (smt-selec)] selection filter\n[             use when SMARTS filtering is enabled ]')
-
-  args = p.parse_args()
-  return args
-
 ############################################################################
 def doit( ):
 
@@ -164,7 +129,7 @@ def doit( ):
     mpi.close()
     mpi.join()
     d_df = pd.DataFrame(Data[0], columns=['Name','Score']).dropna().sort_values(by=['Score'])
-    
+
     ## Make histogram of ditribution of FRED scores
     Histogram( d_df.Score, int(args.all_top), top_name, args.dock, upper, lower )
     print("\n  ## Finished plotting overall Top-Ranks ##\n {0} / {1}\n\n".
@@ -218,7 +183,7 @@ def doit( ):
 def ExtractScoreInfo( fname ):
   print('file_name: '+str(fname))
 
-  data = pd.read_csv(fname, sep='\s+', comment='#', header=None).values.tolist()
+  data = pd.read_csv(fname, sep='\s+', comment='#').values.tolist()
 #  data = np.genfromtxt(fname, comments=['#','Title', 'Name'], 
 #          dtype={'formats': ('S20', np.float16),'names': ('Name', 'Score')})
 
@@ -519,12 +484,47 @@ def Histogram(Histo, top, top_name, dock, UPPER, LOWER ):
 ## outuput: file handle
 def file_handle(file_name):
   if re.search(r'.gz$', file_name):
-    handle = gzip.open(file_name, 'r')
+    handle = gzip.open(file_name, 'rb')
   elif re.search(r'.bz2$', file_name):
-    handle = bz2.BZ2File(file_name, 'r')
+    handle = bz2.BZ2File(file_name, 'rb')
   else:
-    handle = file(file_name)
+    handle = open(file_name, 'rb')
   return handle
+
+###########################################################################
+#### Default boundary constant for Histogram and changes ####
+grid= False
+
+def UserInput():
+  p = ArgumentParser(description='Command Line Arguments')
+
+  p.add_argument('-score', dest='all_txt', required=True,
+                  help='Score Files: txt')
+  p.add_argument('-sdf', dest='all_sdf', required=True,
+                  help='sdf files: sdf')
+  p.add_argument('-top', dest='all_top', required=True,
+                  help='Numner of Top mol in output: int')
+  p.add_argument('-dock', dest='dock', required=True,
+                  help='docking software: fred | sch | etc')
+  p.add_argument('-outpref', dest='prefix', required=True,
+                  help='Prefix of Output sdf, png, and txt files')
+
+  p.add_argument('-hmax', dest='hmax', required=False,
+                  help="optional: -hmax=< default fred:-14.0 | sch:-10.0 >: ''-float''")
+  p.add_argument('-hmin', dest='hmin', required=False,
+                  help="optional: -hmin=< default fred: -2.0 | sch:-3.0  >: ''-float''")
+  p.add_argument('-coll', dest='coll', required=False,
+                  help='Optional: -coll=< X times top MOL in mem > default: 2x')
+  p.add_argument('-png', dest='grid', required=False,
+                  help='?? ignore')
+
+  p.add_argument('-exclude', dest='arg_exc', required=False,
+                  help='[Optional: -exclude=<SMARTS filter> (smt-clean)] removal filter')
+  p.add_argument('-select', dest='arg_sel', required=False,
+                  help='[optional: -select=<SMARTS filter>  (smt-selec)] selection filter\n[             use when SMARTS filtering is enabled ]')
+
+  args = p.parse_args()
+  return args
 
 ############################################################################
 if __name__ == '__main__':

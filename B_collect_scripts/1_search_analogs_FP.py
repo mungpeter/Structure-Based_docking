@@ -36,6 +36,7 @@ from rdkit.Chem import rdmolops
 from rdkit.Chem import MACCSkeys
 from rdkit.Chem.Draw import rdMolDraw2D
 from rdkit.Chem.Draw import DrawingOptions
+from rdkit.Chem import PandasTools as rdpd
 from rdkit.Chem.Fingerprints import FingerprintMols
 from rdkit.Chem.rdmolops import AssignStereochemistryFrom3D
 
@@ -72,10 +73,10 @@ def main():
 ## Calculate the FingerPrint with Daylight, ECFP_4, MACCS, and total
 def calculate_FP(Mols, choice):
 
-  FP = [[mol, 
-         FingerprintMols.FingerprintMol(mol),
-         AllChem.GetMorganFingerprintAsBitVect(mol, 2, 2048),
-         MACCSkeys.GenMACCSKeys(mol)] for mol in Mols]
+  FP = [[ mol, 
+          FingerprintMols.FingerprintMol(mol),
+          AllChem.GetMorganFingerprintAsBitVect(mol, 2, 2048),
+          MACCSkeys.GenMACCSKeys(mol)] for mol in Mols ]
 
   if not re.search(r'dl|ec|mc|all', choice):
     sys.exit('\n  ## ERROR: Fingerprint selection: dl ec mc all\n')
@@ -108,7 +109,7 @@ def pick_similar_cmpd(Cmpd_FP, Lib_FP, cutoff, choice):
 
     for Lib in Lib_FP:
       Tc = [ DataStructs.FingerprintSimilarity(Cmpd[x], Lib[x]) 
-               for x in range(1,4)]
+                for x in range(1,4)]
 
       if choice == 'dl':
         coeff = Tc[0]
@@ -148,7 +149,6 @@ def pick_similar_cmpd(Cmpd_FP, Lib_FP, cutoff, choice):
 
 
 ##########################################################################
-
 ## Handle gzip and bzip2 file if the extension is right. otherwise, just open
 ## outuput: file handle
 def file_handle(file_name):
@@ -157,46 +157,39 @@ def file_handle(file_name):
   elif re.search(r'.bz2$', file_name):
     handle = bz2.BZ2File(file_name, 'rb')
   else:
-    handle = (file_name)
+    if re.search(r'.smi', file_name):
+      handle = open(file_name, 'r')
+    else:
+      handle = open(file_name, 'rb')
   return handle
 
-#######################################################################
-## new version of rdkit distinguish the input source of the file, treating
-## regular utf-8 file as str input and bytes file (zipped) as object input.
-## Forward_supplier only takes bytes files and Regular_supplier takes regulars.
-## To get around this, use file('x.sdf') to make utf-8 file as an object.
+#########################################################################
 
 def rdkit_open(File_Tuple):
-
   List = []
 
   for f in (File_Tuple):
     handle = file_handle(f)
 
     if re.search(r'.sdf', f):
-      Mol = [x for x in Chem.ForwardSDMolSupplier(handle, removeHs=True)
-             if x is not None]
+      Mol = [x for x in Chem.ForwardSDMolSupplier(handle, removeHs=False)
+              if x is not None]
 
     if re.search(r'.smi', f):
-      with open(f, 'r') as fi:
+      with handle as fi:
         first_line = fi.readline()
 
       if re.search(r'smiles', first_line, re.IGNORECASE):
-        Mol = [x for x in Chem.SmilesMolSupplier(handle, titleLine=True,
-                 delimiter=' |\t|,') if x is not None]
+        Mol = [x for x in Chem.SmilesMolSupplier(f, titleLine=True,
+                  delimiter=' |\t|,') if x is not None]
       else:
-        Mol = [x for x in Chem.SmilesMolSupplier(handle, titleLine=False,
-                 delimiter=' |\t|,') if x is not None]
-
-    ## not the official RDkit function, may fail
-    if re.search(r'.mol2', f):
-      Mol = [x for x in Mol2MolSupplier(f, removeHs=False) if x is not None]
+        Mol = [x for x in Chem.SmilesMolSupplier(f, titleLine=False,
+                  delimiter=' |\t|,') if x is not None]
 
     print( "\n# Found mol in {0}: {1}\n".format(f, len(Mol)))
     for mol in Mol: List.append(mol)
 
   return List
-
 
 ##########################################################################
 if __name__ == '__main__':

@@ -20,7 +20,7 @@ def main( filename ):
   print('\n > File read: {}\n'.format(mol_file))
 
   if re.search(r'.sdf', mol_file):
-    handle = file_handle_byte(mol_file)
+    handle = file_handle(mol_file)
 
     Mol = [x for x in Chem.ForwardSDMolSupplier(handle, removeHs=True) 
             if x is not None]
@@ -48,13 +48,16 @@ def main( filename ):
 #################################################################################
 ## Handle gzip and bzip2 file if the extension is right. otherwise, just open
 ## outuput: file handle
-def file_handle_byte(file_name):
+def file_handle(file_name):
   if re.search(r'.gz$', file_name):
     handle = gzip.open(file_name, 'rb')
   elif re.search(r'.bz2$', file_name):
     handle = bz2.BZ2File(file_name, 'rb')
   else:
-    handle = open(file_name, 'rb')
+    if re.search(r'.smi', file_name):
+      handle = open(file_name, 'r')
+    else:
+      handle = open(file_name, 'rb')
 
   return handle
 
