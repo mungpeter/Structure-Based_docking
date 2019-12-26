@@ -297,7 +297,7 @@ python            # 3.6.8+
   pandas          # 0.24.2+
   matplotlib      # 3.0.3+
   seaborn         # 0.9.0+
-  rdkit           # 2019.03.01
+  rdkit           # 2019.09.02
   tabulate        # 0.8.3+
   pathos          # 0.2.3+
   tqdm            # 4.31.1+
