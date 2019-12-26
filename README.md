@@ -49,7 +49,7 @@ There are 2 major folders with _primary running_ scripts (**A_docking_scripts** 
 - for **lead-like** (300 < MW <= 450) and **fragment-like** (MW <= 300) libraries, keep each subset file at 100,000 mol max.
 - for **drug-like** (MW > 450) library, keep each subset file at  80,000 mol max.
 
-###################################################################
+                      #################################
 
 **Prepare ligand library for Glide docking**
 
@@ -81,7 +81,16 @@ echo $!
 #        -JOB   JBNAME \
 #        -HOST  localhost:$schcpu
 ```
-####################################################################
+
+- To run this in batch mode on a HPC cluster, use the shell script to modify the template LSF script and submit the jobs:
+```
+> A_docking_scripts
+        |---- /1_prep_ligands
+                    |---- run_ligprep_lsf.csh
+                    |---- ligprep.tmpl.lsf
+```
+
+                      #################################
 
 **Prepare ligand library for OpenEye Docking**
 
@@ -100,6 +109,15 @@ omega2 \
   -progress none      \
   -strict   false
 ```
+
+- To run this in batch mode on a HPC cluster, use the shell script to modify the template LSF script and submit the jobs:
+```
+> A_docking_scripts
+        |---- /1_prep_ligands
+                    |---- run_omega_lsf.csh
+                    |---- omega.tmpl.lsf
+```
+
 #######################################################################################
 # Docking
 ```
@@ -113,6 +131,16 @@ omega2 \
 
 - **Docking** - this is done through the command-line program *fred*. The default setup will work for 99% of the case. Write out the docking results to **sdf.gz** format, not the *oeb.gz* format. Be sure to change the **-hitlist_size** to **0** (save all), otherwise only _500_ (default) will be saved and the rest are lost.
 
+- To run this in batch mode on a HPC cluster, use the shell script to modify the template LSF script and submit the jobs:
+```
+> A_docking_scripts
+        |---- /2_virtual_screen
+                    |---- fred_submit_lsf.csh
+                    |---- fred_docking.repeat.lsf
+```
+
+                      #################################
+
 ```
 > ${SCHRODINGER}/glide  glide-grid_generation.inp
 
@@ -124,6 +152,20 @@ omega2 \
 
 - **Docking** - the default _Standard Precision (SP)_ setting works for most cases. **Do not** use _High-throughput virtual screen (HTVS)_ setting to "save time" as the manual recommended. Tried it and this setting failed to capture many known ligands even in the top 50% ranking. **Extreme Precision (XP)** is useless and slow for most cases as it uses very harsh and rigid vdw scaling, which fails in most cases too. Only ever use it if you are working on a congeneric series of a scaffold that is developed based on a crystal structure. **Always** turn on **Aromatic H** and **Halogen bonds** options. Can use constraints previously defined in Grid generation by requiring _X_ of _n_ constraints must be fulfilled. Also, save the docking results with **no** receptor pose, and in **SDF** format, don't use **MAE** format.
 
+- To run this in batch mode on a HPC cluster, use the shell script to modify the template LSF script and submit the jobs:
+```
+> A_docking_scripts
+        |---- /2_virtual_screen
+                    |---- glide_submit_lsf.csh           # control glide submission
+                    |---- glide-dock.template.lsf        # docking LSF template
+                    |---- glide-dock.HTVS_SP.template.in # docking input template
+                    |---- glide-grid_template.in         # grid input template
+                    |
+                    |---- glide_clean_folder.csh   # summarize batch docking folders
+                    |---- glide_clean_score.py     # make readable Glide score file
+```
+
+                      #################################
 
 ```
 > ${SCHRODINGER}/ifd
@@ -163,6 +205,7 @@ omega2 \
 > test.sch_docked.txt.bz2
 > test.sch_docked.sdf.bz2
 
+                      #################################
 
 ```
 > B_collect_scripts/7_general_docking_cluster.py
@@ -186,6 +229,8 @@ omega2 \
 ```
 - Cluster the supplied molecules using a _fingerprint-based chemical similarity_ method with a user-defined Tanimoto cutoff value. A value of **0.40** works for most cases of lead-/drug-like molecules (MW 300-500+), while fragment-like may need a lower value, e.g. 0.37. The clustered results are placed into a PyMOL session file and the docking receptor is used. The clustered molecules are also output into a PDF file.
 
+                      #################################
+
 ```
 > B_collect_scripts/9_consensus_best_pose.py
         [ List of Score Files ]   ** SDF and Score files must have same prefix
@@ -207,7 +252,8 @@ omega2 \
  ```
 - Perform a consensus of results from a set of dockings to a single receptor. A molecule has to be in the top <X>% of <Y> number of model to be considered in the consensus result. For each molecule, the highest ranking score and pose is saved. The final consensus is the ranking of the single best pose or the average of rank, tho single best rank is better overall. SDF and Score files used must have same prefix.
 
-#######################################################################################
+                      #################################
+
 # Collecting Results of Schrodinger Induced-Fit Docking (IFD)
 ```
 > B_collect_scripts/3_glide_IFD_mae2pdb.py
