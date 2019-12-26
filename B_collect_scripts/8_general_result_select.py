@@ -104,7 +104,7 @@ def rdkit_open(File_Tuple):
 
     if re.search(r'.sdf', f):
       Mol = [x for x in Chem.ForwardSDMolSupplier(handle, removeHs=False)
-             if x is not None]
+              if x is not None]
 
     if re.search(r'.smi', f):
       with handle as fi:
@@ -112,10 +112,10 @@ def rdkit_open(File_Tuple):
 
       if re.search(r'smiles', first_line, re.IGNORECASE):
         Mol = [x for x in Chem.SmilesMolSupplier(f, titleLine=True,
-                 delimiter=' |\t|,') if x is not None]
+                  delimiter=' |\t|,') if x is not None]
       else:
         Mol = [x for x in Chem.SmilesMolSupplier(f, titleLine=False,
-                 delimiter=' |\t|,') if x is not None]
+                  delimiter=' |\t|,') if x is not None]
 
     print( "\n# Found mol in {0}: {1}\n".format(f, len(Mol)))
     for mol in Mol: List.append(mol)
