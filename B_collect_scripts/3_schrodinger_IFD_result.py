@@ -31,6 +31,7 @@ if len(sys.argv) != 4: sys.exit(msg)
 
 import os,re
 import shutil
+import gzip,bz2
 import pandas as pd
 
 from rdkit import Chem
