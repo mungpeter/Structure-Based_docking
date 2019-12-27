@@ -1,0 +1,19 @@
+[waltz]
+
+Driver script for canvasSearch subjob pains_filter_subjob_1
+Current time: Fri Dec 27 16:09:59 2019
+Number of CPUs requested = 1
+SCHRODINGER=/home/software/schrodinger2019-1
+SCHRODINGER_JOBID=waltz-0-5e067326
+MMSHARE_EXEC=/home/software/schrodinger2019-1/mmshare-v4.5/bin/Linux-x86_64
+CANVAS_EXEC=/home/software/schrodinger2019-1/canvas-v3.9/bin/Linux-x86_64
+
+Command: "/home/software/schrodinger2019-1/canvas-v3.9/bin/Linux-x86_64/canvasSearch"  -isd "pains_filter_search_pt1.sd" -filter -file "../../A_docking_scripts/1_prep_ligands/all-1.sch.pains_filter.cflt" -osd "pains_filter_subjob_1_out.sd.gz" -osd2 "pains_filter_subjob_1_out2.sd.gz"
+
+CPU time= 0.32 sec
+
+canvasSearch successfully completed.
+
+Driver script for canvasSearch subjob pains_filter_subjob_1 finished
+Current time: Fri Dec 27 16:10:00 2019
+Elapsed time = 00:00:01

@@ -1,0 +1,69 @@
+#Interface settings
+
+#Mode classic
+
+#Execute Options :   
+    #-param (Not set, no default)
+    #-mpi_np (Not set, no default)
+    #-mpi_hostfile (Not set, no default)
+
+#File Options :   
+    #-commentEnergy  false
+    -in  antibiotics.oe.ism
+    #-includeInput  false
+    #-log (Not set, no default)
+    -out  antibiotics.oeb.gz
+    #-pendingFile (Not set, no default)
+    -prefix  antibiotics
+    -progress  percent
+    #-rotorOffsetCompress  true
+    #-sdEnergy  false
+    #-status (Not set, no default)
+    #-verbose  false
+    #-warts  false
+
+#3D Construction Parameters :   
+    #-addfraglib (Not set, no default)
+    #-buildff  mmff94smod_NoEstat
+    #-canonOrder  true
+    #-deleteFixHydrogens  true
+    #-dielectric  1.0
+    #-exponent  1
+    #-fixfile (Not set, no default)
+    #-fixrms  0.15
+    #-fixsmarts (Not set, no default)
+    #-fromCT  true
+    #-maxmatch  1
+    #-setfraglib (Not set, no default)
+    #-strictatomtyping  true
+    #-strictfrags  false
+    #-umatch  true
+
+#Structure Enumeration :   
+    #-enumNitrogen  true
+    #-enumRing  true
+    #-sampleHydrogens  false
+
+#Torsion Driving Parameters :   
+    #-addtorlib (Not set, no default)
+    #-erange (Not set, no default)
+    #-ewindow  10.0
+    #-maxConfRange (Not set, no default)
+    -maxconfs  300
+    #-maxrot  -1
+    #-maxtime  120.0
+    #-rangeIncrement  5
+    #-rms  0.5
+    #-rmsrange (Not set, no default)
+    #-searchff  mmff94smod_NoEstat
+    #-settorlib (Not set, no default)
+    #-torlibtype  original
+
+#Stereo Parameters :   
+    #-flipper  false
+    #-flipper_maxcenters  12
+    #-flipper_warts  false
+    #-strictstereo  true
+
+#General :   
+    -strict  false

@@ -1,0 +1,267 @@
+--------------------------------------------------------------------------------
+JobId          : waltz-0-5e0672e4
+Name           : antibiotics.sch
+Program        : LigPrep
+MMshareExec    : /home/software/schrodinger2019-1/mmshare-v4.5/bin/Linux-x86_64
+Host           : waltz
+Dir            : /home/pmung/Dropbox (Schlessinger lab)/9_scripts/1_Docking/1_struc_based/Examples/1_prep_ligands
+HostEntry      : localhost
+JobHost        : waltz
+JobDir         : /home/pmung/Dropbox (Schlessinger lab)/9_scripts/1_Docking/1_struc_based/Examples/1_prep_ligands
+JobMMshareExec : /home/software/schrodinger2019-1/mmshare-v4.5/bin/Linux-x86_64
+Commandline    : /home/software/schrodinger2019-1/ligprep -WAIT -LOCAL -i 2 -epik -We,-ph,7.2,-pht,0.3,-ms,1 -s 1 -t 1 -bff 16 -ismi antibiotics.smi -osd antibiotics.sch.sdf.gz -HOST localhost:4 -NJOBS 4
+StartTime      : 2019-12-27-16:08:53
+--------------------------------------------------------------------------------
+LigPrep: preparing subjobs
+
+Running subjobs on hosts:
+  localhost (Max: 4)
+Number of jobs:       4
+Max retries per job:  2
+Max allowed failures: unlimited
+Run with -LOCAL:      False
+Verbosity:            normal
+
+Starting JobDJ...
+
+Keep one job on driver host: False
+JobDJ columns:
+  C: Number of completed subjobs
+  A: Number of active subjobs (e.g., submitted, running)
+  W: Number of waiting/pending subjobs
+
+C A W | Activity  JobId  JobName  JobHost
+- - - | --------- -----------------------
+0 1 3 | launched  waltz-0-5e0672e7 antibiotics.sch-1 localhost [waltz]
+0 2 2 | launched  waltz-0-5e0672ea antibiotics.sch-2 localhost [waltz]
+0 3 1 | launched  waltz-0-5e0672ec antibiotics.sch-3 localhost [waltz]
+WARNING: Job launch failed for 1/2 times.
+% ligprep -i 2 -epik -W e,-ph,7.2,-pht,0.3,-ms,1 -s 1 -t 1 -bff 16 -orig_file antibiotics.smi -orig_file_index 16 -ismi in_antibiotics.sch-4.smi -osd antibiotics.sch-4.sdf.gz -HOST localhost
+Output
+Launch failed: no JobId found.
+
+Command:
+/home/software/schrodinger2019-1/ligprep -i 2 -epik -W e,-ph,7.2,-pht,0.3,-ms,1 -s 1 -t 1 -bff 16 -orig_file antibiotics.smi -orig_file_index 16 -ismi in_antibiotics.sch-4.smi -osd antibiotics.sch-4.sdf.gz -HOST localhost
+Output:
+ERROR: 'in_antibiotics.sch-4.smi' is not a readable file.
+
+WARNING: Job launch failed for 2/2 times.
+% ligprep -i 2 -epik -W e,-ph,7.2,-pht,0.3,-ms,1 -s 1 -t 1 -bff 16 -orig_file antibiotics.smi -orig_file_index 16 -ismi in_antibiotics.sch-4.smi -osd antibiotics.sch-4.sdf.gz -HOST localhost
+Output
+Launch failed: no JobId found.
+
+Command:
+/home/software/schrodinger2019-1/ligprep -i 2 -epik -W e,-ph,7.2,-pht,0.3,-ms,1 -s 1 -t 1 -bff 16 -orig_file antibiotics.smi -orig_file_index 16 -ismi in_antibiotics.sch-4.smi -osd antibiotics.sch-4.sdf.gz -HOST localhost
+Output:
+ERROR: 'in_antibiotics.sch-4.smi' is not a readable file.
+
+WARNING: Job launch failed for 1/2 times.
+% ligprep -i 2 -epik -W e,-ph,7.2,-pht,0.3,-ms,1 -s 1 -t 1 -bff 16 -orig_file antibiotics.smi -orig_file_index 16 -ismi in_antibiotics.sch-4.smi -osd antibiotics.sch-4.sdf.gz -HOST localhost
+Output
+Launch failed: no JobId found.
+
+Command:
+/home/software/schrodinger2019-1/ligprep -i 2 -epik -W e,-ph,7.2,-pht,0.3,-ms,1 -s 1 -t 1 -bff 16 -orig_file antibiotics.smi -orig_file_index 16 -ismi in_antibiotics.sch-4.smi -osd antibiotics.sch-4.sdf.gz -HOST localhost
+Output:
+ERROR: 'in_antibiotics.sch-4.smi' is not a readable file.
+
+WARNING: Job launch failed for 2/2 times.
+% ligprep -i 2 -epik -W e,-ph,7.2,-pht,0.3,-ms,1 -s 1 -t 1 -bff 16 -orig_file antibiotics.smi -orig_file_index 16 -ismi in_antibiotics.sch-4.smi -osd antibiotics.sch-4.sdf.gz -HOST localhost
+Output
+Launch failed: no JobId found.
+
+Command:
+/home/software/schrodinger2019-1/ligprep -i 2 -epik -W e,-ph,7.2,-pht,0.3,-ms,1 -s 1 -t 1 -bff 16 -orig_file antibiotics.smi -orig_file_index 16 -ismi in_antibiotics.sch-4.smi -osd antibiotics.sch-4.sdf.gz -HOST localhost
+Output:
+ERROR: 'in_antibiotics.sch-4.smi' is not a readable file.
+
+WARNING: Job launch failed for 1/2 times.
+% ligprep -i 2 -epik -W e,-ph,7.2,-pht,0.3,-ms,1 -s 1 -t 1 -bff 16 -orig_file antibiotics.smi -orig_file_index 16 -ismi in_antibiotics.sch-4.smi -osd antibiotics.sch-4.sdf.gz -HOST localhost
+Output
+Launch failed: no JobId found.
+
+Command:
+/home/software/schrodinger2019-1/ligprep -i 2 -epik -W e,-ph,7.2,-pht,0.3,-ms,1 -s 1 -t 1 -bff 16 -orig_file antibiotics.smi -orig_file_index 16 -ismi in_antibiotics.sch-4.smi -osd antibiotics.sch-4.sdf.gz -HOST localhost
+Output:
+ERROR: 'in_antibiotics.sch-4.smi' is not a readable file.
+
+WARNING: Job launch failed for 2/2 times.
+% ligprep -i 2 -epik -W e,-ph,7.2,-pht,0.3,-ms,1 -s 1 -t 1 -bff 16 -orig_file antibiotics.smi -orig_file_index 16 -ismi in_antibiotics.sch-4.smi -osd antibiotics.sch-4.sdf.gz -HOST localhost
+Output
+Launch failed: no JobId found.
+
+Command:
+/home/software/schrodinger2019-1/ligprep -i 2 -epik -W e,-ph,7.2,-pht,0.3,-ms,1 -s 1 -t 1 -bff 16 -orig_file antibiotics.smi -orig_file_index 16 -ismi in_antibiotics.sch-4.smi -osd antibiotics.sch-4.sdf.gz -HOST localhost
+Output:
+ERROR: 'in_antibiotics.sch-4.smi' is not a readable file.
+
+1 3 0 | None      None basejob[3] None
+ERROR: Subjob 'basejob[3]' has failed after 2 retries.
+Launch failed: no JobId found.
+
+Command:
+/home/software/schrodinger2019-1/ligprep -i 2 -epik -W e,-ph,7.2,-pht,0.3,-ms,1 -s 1 -t 1 -bff 16 -orig_file antibiotics.smi -orig_file_index 16 -ismi in_antibiotics.sch-4.smi -osd antibiotics.sch-4.sdf.gz -HOST localhost
+Output:
+ERROR: 'in_antibiotics.sch-4.smi' is not a readable file.
+
+2 2 0 | finished  waltz-0-5e0672e7 antibiotics.sch-1 localhost [waltz]
+3 1 0 | finished  waltz-0-5e0672ec antibiotics.sch-3 localhost [waltz]
+4 0 0 | finished  waltz-0-5e0672ea antibiotics.sch-2 localhost [waltz]
+
+All jobs have completed.
+
+3 of 4 job(s) succeeded; 1 job(s) failed.
+
+--------------------------------------------------------------------------------
+SUBJOB:  antibiotics.sch-1 
+
+--------------------------------------------------------------------------------
+ JobId          : waltz-0-5e0672e7
+ Name           : antibiotics.sch-1
+ Program        : LigPrep
+ MMshareExec    : /home/software/schrodinger2019-1/mmshare-v4.5/bin/Linux-x86_64
+ Host           : waltz
+ Dir            : /home/pmung/Dropbox (Schlessinger lab)/9_scripts/1_Docking/1_struc_based/Examples/1_prep_ligands
+ HostEntry      : localhost
+ JobHost        : waltz
+ JobDir         : /home/pmung/scratch/pmung/antibiotics.sch-1
+ JobMMshareExec : /home/software/schrodinger2019-1/mmshare-v4.5/bin/Linux-x86_64
+ Commandline    : /home/software/schrodinger2019-1/ligprep -i 2 -epik -W e,-ph,7.2,-pht,0.3,-ms,1 -s 1 -t 1 -bff 16 -orig_file antibiotics.smi -orig_file_index 1 -ismi in_antibiotics.sch-1.smi -osd antibiotics.sch-1.sdf.gz -HOST localhost
+ StartTime      : 2019-12-27-16:08:56
+ --------------------------------------------------------------------------------
+ LigPrep (version 49011). Copyright Schrodinger, LLC. All rights reserved.
+ 
+ LigPrep command:
+ $SCHRODINGER/ligprep -i 2 -epik -W e,-ph,7.2,-pht,0.3,-ms,1 -s 1 -t 1 -bff 16 -orig_file antibiotics.smi -orig_file_index 1 -ismi in_antibiotics.sch-1.smi -osd antibiotics.sch-1.sdf.gz
+ 
+ Processing steps:
+ $DO/smiconvert_in.py -orig_file_index 0 -orig_file antibiotics.smi -max_atom 200 in_antibiotics.sch-1.smi
+ $DO/htreat.py -t All-None -a all -s -l 200 <infile.mae> <outfile.mae>
+ $DO/desalter.py <infile.mae> <outfile.mae>
+ $DO/neutralizer.py -m 200 <infile.mae> <outfile.mae>
+ $DO/epik.py -ph 7.2 -pht 0.3 -ms 1 -tn 1 -ma 200 -imae <infile.mae> -omae <outfile.mae>
+ $DO/guard.py <infile.mae> <outfile.mae>
+ $DO/stereoizer.py -label_specified_chiralities -n 1 <infile.mae> <outfile.mae>
+ $DO/cgx.py -optimize -ffld 16 -epsilon 10.0 <infile.mae> <outfile.mae>
+ $DO/filterstereo.py -max_stereo 1 <infile.mae> <outfile.mae>
+ 
+ DO=$SCHRODINGER/run -FROM macromodel ../../lib/Linux-x86_64/python_packages/ligprep3/
+ 
+ # counts of output and dropped structures after processing steps
+ # index  htreat  desalt  neutra   epik    guard  stereo    cgx   filter  title
+        1   1/0     1/0     1/0     1/0     1/0     1/0     1/0     1/0   'Penicillin_G'
+        2   1/0     1/0     1/0     1/0     1/0     1/0     1/0     1/0   'Ampicillin'
+        3   1/0     1/0     1/0     1/0     1/0     1/0     1/0     1/0   'Tetracycline'
+        4   1/0     1/0     1/0     1/0     1/0     1/0     1/0     1/0   'Sulfacetamide'
+        5   1/0     1/0     1/0     1/0     1/0     1/0     1/0     1/0   'Sulfamethoxypyridazine'
+ 
+ # of processed structures in "antibiotics.sch-1.sdf.gz" : 5
+ # of dropped structures in "antibiotics.sch-1-dropped.smi" : 0
+ 
+ backend run time: 0 hours 0 minutes 15.001 seconds
+ --------------------------------------------------------------------------------
+SUBJOB:  antibiotics.sch-2 
+
+--------------------------------------------------------------------------------
+ JobId          : waltz-0-5e0672ea
+ Name           : antibiotics.sch-2
+ Program        : LigPrep
+ MMshareExec    : /home/software/schrodinger2019-1/mmshare-v4.5/bin/Linux-x86_64
+ Host           : waltz
+ Dir            : /home/pmung/Dropbox (Schlessinger lab)/9_scripts/1_Docking/1_struc_based/Examples/1_prep_ligands
+ HostEntry      : localhost
+ JobHost        : waltz
+ JobDir         : /home/pmung/scratch/pmung/antibiotics.sch-2.1
+ JobMMshareExec : /home/software/schrodinger2019-1/mmshare-v4.5/bin/Linux-x86_64
+ Commandline    : /home/software/schrodinger2019-1/ligprep -i 2 -epik -W e,-ph,7.2,-pht,0.3,-ms,1 -s 1 -t 1 -bff 16 -orig_file antibiotics.smi -orig_file_index 6 -ismi in_antibiotics.sch-2.smi -osd antibiotics.sch-2.sdf.gz -HOST localhost
+ StartTime      : 2019-12-27-16:08:58
+ --------------------------------------------------------------------------------
+ LigPrep (version 49011). Copyright Schrodinger, LLC. All rights reserved.
+ 
+ LigPrep command:
+ $SCHRODINGER/ligprep -i 2 -epik -W e,-ph,7.2,-pht,0.3,-ms,1 -s 1 -t 1 -bff 16 -orig_file antibiotics.smi -orig_file_index 6 -ismi in_antibiotics.sch-2.smi -osd antibiotics.sch-2.sdf.gz
+ 
+ Processing steps:
+ $DO/smiconvert_in.py -orig_file_index 5 -orig_file antibiotics.smi -max_atom 200 in_antibiotics.sch-2.smi
+ $DO/htreat.py -t All-None -a all -s -l 200 <infile.mae> <outfile.mae>
+ $DO/desalter.py <infile.mae> <outfile.mae>
+ $DO/neutralizer.py -m 200 <infile.mae> <outfile.mae>
+ $DO/epik.py -ph 7.2 -pht 0.3 -ms 1 -tn 1 -ma 200 -imae <infile.mae> -omae <outfile.mae>
+ $DO/guard.py <infile.mae> <outfile.mae>
+ $DO/stereoizer.py -label_specified_chiralities -n 1 <infile.mae> <outfile.mae>
+ $DO/cgx.py -optimize -ffld 16 -epsilon 10.0 <infile.mae> <outfile.mae>
+ $DO/filterstereo.py -max_stereo 1 <infile.mae> <outfile.mae>
+ 
+ DO=$SCHRODINGER/run -FROM macromodel ../../lib/Linux-x86_64/python_packages/ligprep3/
+ 
+ # counts of output and dropped structures after processing steps
+ # index  htreat  desalt  neutra   epik    guard  stereo    cgx   filter  title
+        6   1/0     1/0     1/0     1/0     1/0     1/0     1/0     1/0   'Amprenavir'
+        7   1/0     1/0     1/0     1/0     1/0     1/0     1/0     1/0   'Asunaprevir'
+        8   1/0     1/0     1/0     1/0     1/0     1/0     1/0     1/0   'Lincomycin'
+        9   1/0     1/0     1/0     1/0     1/0     1/0     1/0     1/0   'Aztreonam'
+       10   1/0     1/0     1/0     1/0     1/0     1/0     1/0     1/0   'Nitrofurantoin'
+ 
+ # of processed structures in "antibiotics.sch-2.sdf.gz" : 5
+ # of dropped structures in "antibiotics.sch-2-dropped.smi" : 0
+ 
+ backend run time: 0 hours 0 minutes 31.512 seconds
+ --------------------------------------------------------------------------------
+SUBJOB:  antibiotics.sch-3 
+
+--------------------------------------------------------------------------------
+ JobId          : waltz-0-5e0672ec
+ Name           : antibiotics.sch-3
+ Program        : LigPrep
+ MMshareExec    : /home/software/schrodinger2019-1/mmshare-v4.5/bin/Linux-x86_64
+ Host           : waltz
+ Dir            : /home/pmung/Dropbox (Schlessinger lab)/9_scripts/1_Docking/1_struc_based/Examples/1_prep_ligands
+ HostEntry      : localhost
+ JobHost        : waltz
+ JobDir         : /home/pmung/scratch/pmung/antibiotics.sch-3
+ JobMMshareExec : /home/software/schrodinger2019-1/mmshare-v4.5/bin/Linux-x86_64
+ Commandline    : /home/software/schrodinger2019-1/ligprep -i 2 -epik -W e,-ph,7.2,-pht,0.3,-ms,1 -s 1 -t 1 -bff 16 -orig_file antibiotics.smi -orig_file_index 11 -ismi in_antibiotics.sch-3.smi -osd antibiotics.sch-3.sdf.gz -HOST localhost
+ StartTime      : 2019-12-27-16:09:00
+ --------------------------------------------------------------------------------
+ LigPrep (version 49011). Copyright Schrodinger, LLC. All rights reserved.
+ 
+ LigPrep command:
+ $SCHRODINGER/ligprep -i 2 -epik -W e,-ph,7.2,-pht,0.3,-ms,1 -s 1 -t 1 -bff 16 -orig_file antibiotics.smi -orig_file_index 11 -ismi in_antibiotics.sch-3.smi -osd antibiotics.sch-3.sdf.gz
+ 
+ Processing steps:
+ $DO/smiconvert_in.py -orig_file_index 10 -orig_file antibiotics.smi -max_atom 200 in_antibiotics.sch-3.smi
+ $DO/htreat.py -t All-None -a all -s -l 200 <infile.mae> <outfile.mae>
+ $DO/desalter.py <infile.mae> <outfile.mae>
+ $DO/neutralizer.py -m 200 <infile.mae> <outfile.mae>
+ $DO/epik.py -ph 7.2 -pht 0.3 -ms 1 -tn 1 -ma 200 -imae <infile.mae> -omae <outfile.mae>
+ $DO/guard.py <infile.mae> <outfile.mae>
+ $DO/stereoizer.py -label_specified_chiralities -n 1 <infile.mae> <outfile.mae>
+ $DO/cgx.py -optimize -ffld 16 -epsilon 10.0 <infile.mae> <outfile.mae>
+ $DO/filterstereo.py -max_stereo 1 <infile.mae> <outfile.mae>
+ 
+ DO=$SCHRODINGER/run -FROM macromodel ../../lib/Linux-x86_64/python_packages/ligprep3/
+ 
+ # counts of output and dropped structures after processing steps
+ # index  htreat  desalt  neutra   epik    guard  stereo    cgx   filter  title
+       11   1/0     1/0     1/0     1/0     1/0     1/0     1/0     1/0   'Linezolid'
+       12   1/0     1/0     1/0     1/0     1/0     1/0     1/0     1/0   'Ticarcillin'
+       13   1/0     1/0     1/0     1/0     1/0     1/0     1/0     1/0   'Ciprofloxacin'
+       14   1/0     1/0     1/0     1/0     1/0     1/0     1/0     1/0   'Doxycycline'
+       15   1/0     1/0     1/0     1/0     1/0     1/0     1/0     1/0   'Clofazimine'
+ 
+ # of processed structures in "antibiotics.sch-3.sdf.gz" : 5
+ # of dropped structures in "antibiotics.sch-3-dropped.smi" : 0
+ 
+ backend run time: 0 hours 0 minutes 19.077 seconds
+ --------------------------------------------------------------------------------
+SUBJOB:  antibiotics.sch-4 <no log file>
+--------------------------------------------------------------------------------
+
+# of processed structures in "antibiotics.sch.sdf.gz" : 15
+# of dropped structures in "antibiotics.sch-dropped.smi" : 0
+
+WARNING: the following subjob(s) failed:
+basejob[3] (input file: 'in_basejob[3].smi')
+Please examine earlier records in this file for details.
+
+total run time: 0 hours 0 minutes 39.844 seconds

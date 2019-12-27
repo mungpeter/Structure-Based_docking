@@ -1,0 +1,104 @@
+
+          :jGf:             .d8888b. 88d8b.d8b. .d8888b. .d8888b. .d8888b.
+        :jGDDDDf:           88'  `88 88'`88'`88 88ooood8 88'  `88 88'  `88
+      ,fDDDGjLDDDf,         88.  .88 88  88  88 88.  ... 88.  .88 88.  .88
+    ,fDDLt:   :iLDDL;       `88888P' dP  dP  dP `88888P' `8888P88 `88888P8
+  ;fDLt:         :tfDG;                                       .88
+,jft:   ,ijfffji,   :iff                                  d8888P
+     .jGDDDDDDDDDGt.      
+    ;GDDGt:''':tDDDG,          Copyright (c) 2004-2018
+   .DDDG:       :GDDG.         OpenEye Scientific Software, Inc.
+   ;DDDj         tDDDi    
+   ,DDDf         fDDD,         Version: 3.0.1.2
+    LDDDt.     .fDDDj          Built:   20180808
+    .tDDDDfjtjfDDDGt           OEChem version: 2.1.2
+      :ifGDDDDDGfi.            Platform: Ubuntu-16.04-g++5.4-x64
+          .:::.                
+  ......................       
+  DDDDDDDDDDDDDDDDDDDDDD       
+  DDDDDDDDDDDDDDDDDDDDDD       
+
+  Licensed for the exclusive use of The Laboratory of Avner Schlessinger.
+  Licensed for use only in Icahn School of Medicine at Mount Sinai.
+  License expires on November 4, 2020.
+
+
+To cite OMEGA please use the following:
+  OMEGA 3.0.1.2: OpenEye Scientific Software, Santa Fe, NM, USA.
+  http://www.eyesopen.com, 2018
+
+  Hawkins, P.C.D.; Skillman, A.G.; Warren, G.L.; Ellingson, B.A.; Stahl, M.T.
+  Conformer Generation with OMEGA: Algorithm and Validation Using High
+  Quality Structures from the Protein Databank and the Cambridge 
+  Structural Database. J. Chem. Inf. Model. 2010, 50, 572-584.
+
+----------------------------------
+Title = Penicillin_G
+Num confs = 86  elapsed time (s) = 0.45
+----------------------------------
+Title = Sulfacetamide
+Num confs = 4  elapsed time (s) = 0.01
+----------------------------------
+Title = Sulfamethoxypyridazine
+Num confs = 43  elapsed time (s) = 0.01
+----------------------------------
+Title = Ampicillin
+Num confs = 97  elapsed time (s) = 0.48
+----------------------------------
+Title = Tetracycline
+Num confs = 6  elapsed time (s) = 1.42
+----------------------------------
+Title = Amprenavir
+Num confs = 300  elapsed time (s) = 1.39
+----------------------------------
+Title = Lincomycin
+Num confs = 300  elapsed time (s) = 0.45
+----------------------------------
+Title = Lincomycin
+Num confs = 283  elapsed time (s) = 0.41
+----------------------------------
+Title = Nitrofurantoin
+Num confs = 12  elapsed time (s) = 0.10
+----------------------------------
+Title = Aztreonam
+Num confs = 300  elapsed time (s) = 0.76
+----------------------------------
+Title = Ticarcillin
+Num confs = 270  elapsed time (s) = 0.45
+----------------------------------
+Title = Linezolid
+Num confs = 300  elapsed time (s) = 0.79
+----------------------------------
+Title = Ciprofloxacin
+Num confs = 24  elapsed time (s) = 0.05
+----------------------------------
+Title = Asunaprevir
+Num confs = 300  elapsed time (s) = 2.79
+----------------------------------
+Title = Isoniazid
+Num confs = 2  elapsed time (s) = 0.01
+----------------------------------
+Title = Chloramphenicol
+Num confs = 136  elapsed time (s) = 0.29
+----------------------------------
+Title = Fosfomycin
+Num confs = 1  elapsed time (s) = 0.01
+----------------------------------
+Title = Clofazimine
+Num confs = 18  elapsed time (s) = 0.88
+----------------------------------
+Title = Doxycycline
+Num confs = 6  elapsed time (s) = 1.50
+----------------------------------
+Title = Fusidic_Acid
+Num confs = 12  elapsed time (s) = 2.16
+Slave 2 has shutdown normally
+Slave 3 has shutdown normally
+Slave 1 has shutdown normally
+----------------------------------
+Number of Molecules Processed = 20
+Number of Molecules Failed = 0
+Elapsed time (s) = 6.3
+----------------------------------
+OMEGA job complete
+Finished

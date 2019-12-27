@@ -2,15 +2,15 @@
 
 ##
 
-time ${SCHRODINGER}/ligprep -WAIT -LOCAL \
+time ${SCHRODINGER}/ligprep -WAIT -LOCAL        \
         -i 2   -epik -We,-ph,7.2,-pht,0.3,-ms,1 \
-        -s 1   -t 1 \
-        -bff   16 \
-#        -f $homedir/all-1.sch.propt_filter.cflt \
+        -s 1   -t 1                             \
+        -bff   16                               \
         -ismi  antibiotics.smi        \
         -osd   antibiotics.sch.sdf.gz \
         -HOST  localhost:4            \
         -NJOBS 4
+#        -f all-1.sch.propt_filter.cflt \
 
 
 ## Use filter to pick out molecules that fulfill the PAINS SMARTS patterns
