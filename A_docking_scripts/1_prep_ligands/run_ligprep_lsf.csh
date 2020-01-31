@@ -43,6 +43,6 @@ foreach file (`cat $list`)
   sed "s/JBNAME/$name/g"  \
     > $lsf
   
-  qsub $name.lsf
+  bsub < $name.lsf
 
 end

@@ -49,8 +49,33 @@ There are 2 major folders with _primary running_ scripts (**A_docking_scripts** 
 
 > one issue with these shuffled SMILES files -- the first line is somehow always missing some characters, rendering the first line (molecule) of all smiles files to be bad and any conversion will fail. But that only affect 75 molecules out of ~ 6M, ignore for now.
 
-- for **lead-like** (300 < MW <= 450) and **fragment-like** (MW <= 300) libraries, keep each subset file at 100,000 mol max.
-- for **drug-like** (MW > 450) library, keep each subset file at  80,000 mol max.
+- for **lead-like** (300 < MW <= 400) and **fragment-like** (MW <= 300) libraries, keep each subset file at 100,000 mol max.
+- for **drug-like** (MW > 400) library, keep each subset file at  80,000 mol max.
+
+
+> The above procedures are now summarized in a shell script:
+```
+  > lig_library_split.csh
+      [ input smiles file ]
+      [ output prefix ]
+      [ maximum smiles in each piece ]
+
+  e.g. x.csh lead.smi enm19.lead 100000
+```
+
+> If the available library is only in SDF format, the following script will clean it up to remove known salts and split into shuffled fragment/lead/drug-like sets of SMILES files based on molecular weight.
+> Beware of the size of the SDF library, since reading into RDKit will blow up the size alot.
+```
+  > sdf_library_2_smi.py
+      [ sdf filename ]
+
+  > generate:
+     - lead.smi (300 < l <= 400) | drug.smi (> 400) 
+     - frag.smi (150 < f <= 300) | small.smi (<=150)
+     - .csv  (physical properties of molecules)
+
+  Warning: SDF file should not exceed 1.3GB; that will use ~ 25GB RAM
+```
 
 #################################
 
