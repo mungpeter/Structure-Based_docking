@@ -53,7 +53,7 @@ There are 2 major folders with _primary running_ scripts (**A_docking_scripts** 
 - for **drug-like** (MW > 400) library, keep each subset file at  80,000 mol max.
 
 
-> The above procedures are now summarized in a shell script:
+- The above procedures are now summarized in a shell script:
 ```
   > lig_library_split.csh
       [ input smiles file ]
@@ -63,8 +63,8 @@ There are 2 major folders with _primary running_ scripts (**A_docking_scripts** 
   e.g. x.csh lead.smi enm19.lead 100000
 ```
 
-> If the available library is only in SDF format, the following script will clean it up to remove known salts and split into shuffled fragment/lead/drug-like sets of SMILES files based on molecular weight.
-> Beware of the size of the SDF library, since reading into RDKit will blow up the size alot.
+- If the available library is only in SDF format, the following script will clean it up to remove known salts and split into shuffled fragment/lead/drug-like sets of SMILES files based on molecular weight.
+- Beware of the size of the SDF library, since reading into RDKit will blow up the size alot.
 ```
   > sdf_library_2_smi.py
       [ sdf filename ]
