@@ -14,7 +14,7 @@
 #
 ##########################################################################
 
-set schro_ver  = 'schrodinger/2019-1'
+set schro_ver  = 'schrodinger/2019-3'
 set grid_templ = glide-grid_template.in
 set dock_templ = ''
 set lsf_templ  = ''
@@ -24,7 +24,7 @@ set lsf_templ  = ''
 #set dock_templ = glide-dock.HTVS_SP.template.mkk7-cido.in
 #set dock_templ = glide-dock.ulk4_d-in.template.in 
 
-if ($#argv != 7) then
+if ($#argv != 8) then
   echo ''
   echo '    Usage: x.csh'
   echo '             [List of Protein] [List of Ligand Database]'
@@ -60,14 +60,14 @@ endif
 #  exit
 #endif
 
-set pdb_list  = $argv[1]
-set lig_list  = $argv[2]
-set pdb_dir   = $argv[3]
-set lsf_templ = $argv[4]
-set inp_templ = $argv[5]
-set precision = $argv[6]
-set prepare   = $argv[7]
-set docking   = $argv[8]
+set pdb_list   = $argv[1]
+set lig_list   = $argv[2]
+set pdb_dir    = $argv[3]
+set lsf_templ  = $argv[4]
+set dock_templ = $argv[5]
+set precision  = $argv[6]
+set prepare    = $argv[7]
+set docking    = $argv[8]
 
 ##########################################################################
 
