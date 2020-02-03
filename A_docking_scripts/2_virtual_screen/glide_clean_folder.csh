@@ -9,9 +9,12 @@
 set proj = /sc/hydra/projects/schlea02a/1_pmung/9_scripts/2_schrodinger/2_glide
 #set proj = ~/1_kinase/1_super 
 
-if ($#argv != 1) then
+if ($#argv != 2) then
   echo ''
   echo '  Usage: x.csh [list of Glide docking directory]'
+  echo '               [output folder name]'
+  echo ''
+  echo "  Source folder: $proj"
   echo ''
   exit
 endif
@@ -24,8 +27,11 @@ endif
 
 echo current folder: `pwd`
 set dir = $argv[1]
+set out = $argv[2]
 
-mkdir 1_data
+if (! -e $out) then
+  mkdir $out
+endif
 
 foreach folder (`cat $dir`)
   echo $folder
@@ -51,15 +57,15 @@ foreach folder (`cat $dir`)
     rm $folder-*_in.sdf.gz *_subjobs.* 
 #    rm temp.schrodinger.hosts
 
-    cp $name.sch_* ../1_data
-    cp $name.*in ../1_data
+    cp $name.sch_* ../$out
+    cp $name.*in   ../$out
     cd ..
 
   endif
 
 end
 
-cd 1_data
+cd $out
 mkdir 1_log
 mv *log.txt *raw *in 1_log
 bzip2 *.sdf &
