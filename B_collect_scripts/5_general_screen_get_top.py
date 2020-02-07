@@ -37,22 +37,24 @@
 
 import sys
 MSG = """\n  ## Usage: x.py 
-             [score files: txt] [sdf files: sdf]
-             [Number of Top MOL in output: int]
-             [docking software: fred | sch | etc]
-             [Prefix of Output sdf, png, and txt files]\n
-             [optional: -hmax=< default fred:-14.0 | sch:-10.0 >: float]
-             [optional: -hmin=< default fred: -2.0 | sch:-3.0  >: float]\n
-             [Optional: -coll=< X times top MOL in mem > default: 2x]
-             [optional: -exclude=<SMARTS filter> (smt-clean)] removal filter
-             [optional: -select=<SMARTS filter>  (smt-selec)] selection filter
-             [             use when SMARTS filtering is enabled ]
-         ##  TXT and SDF files can also be in GZip/BZip2 format\n
-         e.g.: x.py -score "*_score.txt" -sdf "*.sdf" 
-                 -top 1000 -dock sch -outpref ksr-allost 
-                 -hmax ''-16.0'' -hmin ''-2.0''     # need double quote to work
-                 -coll 3
-    -exclude 'C(=O)[O-]|S(=O)(=O)[O-]|P(=O)(O)[O-]'  # acidic moieties\n"""
+      -score   [ score files: txt ]
+      -sdf     [ sdf files: sdf ]
+      -top     [ Number of Top MOL in output: int ]
+      -dock    [ docking software: fred | sch | etc ]
+      -outpref [ Prefix of Output sdf, png, and txt files ]\n
+  Optional:
+      -hmax    [ < default fred:-14.0 | sch:-10.0 >: float ]
+      -hmin    [ < default fred: -2.0 | sch:-3.0  >: float ]\n
+      -coll    [ < X times top MOL in mem > default: 2x ]
+      -exclude [ <SMARTS filter> (smt-clean) ]        removal filter
+      -select  [ <SMARTS filter>  (smt-selec) ]       selection filter
+               [ use when SMARTS filtering is enabled ]
+  ##  TXT and SDF files can also be in GZip/BZip2 format\n
+  e.g.: x.py -score "*_score.txt" -sdf "*.sdf" 
+             -top 1000 -dock sch -outpref ksr-allost 
+             -hmax '-16.0' -hmin '-2.0'     # need double quote to work
+             -coll 3
+             -exclude 'C(=O)[O-]|S(=O)(=O)[O-]|P(=O)(O)[O-]'  # acidic moieties\n"""
 if len(sys.argv) == 1: sys.exit(MSG)
 
 import glob,re
@@ -113,7 +115,7 @@ def doit( ):
 ######################
     # Read in .fred_score.txt
     File_Names = list(glob.glob(args.all_txt))
-    print("Score File: ")
+    print("\033[31mScore Files:\033[0m")
     print(File_Names)
 
     ## format the output name based on number of top output
@@ -129,6 +131,7 @@ def doit( ):
     mpi.close()
     mpi.join()
     flat_list = [item for sublist in Data for item in sublist]
+    print('\033[31m## Entries read:\033[0m {0}\n'.format(len(flat_list)))
     d_df = pd.DataFrame(flat_list, columns=['Name','Score']).dropna().sort_values(by=['Score'])
 
     ## Make histogram of ditribution of FRED scores
@@ -139,7 +142,7 @@ def doit( ):
 ##################
     # Read in SDF file name
     SDF_Names = glob.glob(args.all_sdf)
-    print("SDF File: ")
+    print("\033[31mSDF Files:\033[0m")
     print(SDF_Names)
 
     ## Build a Top-Selection list, with a 3x head-room for failed molecules 
@@ -151,7 +154,7 @@ def doit( ):
     else:
       num_item = int(args.all_top)*coll
 
-    print("  ## User-defined output total: "+args.all_top)
+    print("  ## User-defined output total: \033[33m{0}\033[0m".format(args.all_top))
     top_df = d_df.loc[:(num_item), ['Name','Score']]
 
     Top_Hash = top_df.set_index('Name').to_dict()['Score']
