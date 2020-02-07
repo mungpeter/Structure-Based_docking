@@ -53,7 +53,7 @@ MSG = """\n  ## Usage: x.py
                  -hmax ''-16.0'' -hmin ''-2.0''     # need double quote to work
                  -coll 3
     -exclude 'C(=O)[O-]|S(=O)(=O)[O-]|P(=O)(O)[O-]'  # acidic moieties\n"""
-#if len(sys.argv) < 1 or len(sys.argv) > 20: sys.exit(MSG)
+if len(sys.argv) == 1: sys.exit(MSG)
 
 import glob,re
 import gzip,bz2,gc
@@ -128,7 +128,8 @@ def doit( ):
 #    Data = [ExtractScoreInfo(fn) for fn in File_Names]
     mpi.close()
     mpi.join()
-    d_df = pd.DataFrame(Data[0], columns=['Name','Score']).dropna().sort_values(by=['Score'])
+    flat_list = [item for sublist in Data for item in sublist]
+    d_df = pd.DataFrame(flat_list, columns=['Name','Score']).dropna().sort_values(by=['Score'])
 
     ## Make histogram of ditribution of FRED scores
     Histogram( d_df.Score, int(args.all_top), top_name, args.dock, upper, lower )
