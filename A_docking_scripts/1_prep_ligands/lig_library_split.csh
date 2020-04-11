@@ -9,7 +9,7 @@
 ## a maximum number of smiles
 ##
 
-if (@$argv != 3) then
+if ($#argv != 3) then
   echo ""
   echo "  x.csh"
   echo "    [ input smiles file ]"

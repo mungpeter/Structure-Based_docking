@@ -72,7 +72,7 @@ def main():
   mpi = multiprocessing.Pool(processes=cpu)
   cCF = ETKDG_ConfGenerator( numConfs=maxconfs, rmsd=rmsd, run_uff=args.ff )
 
-  m_df = RDkitRead( args.in_file, keep_Hs=True, add_Hs=args.add_Hs )
+  m_df = RDkitRead( args.in_file, removeHs=True, add_Hs=args.add_Hs )
 
   ## Generate conformer 3D coordinate vectors for each input molecule
   print('  ## Generateing conformer 3D coordinates ##')
@@ -270,10 +270,10 @@ def ConvertConformerResult( inp ):
 
 ##########################################################################
 ## Read in SMILES or SDF input and add Hs to it
-def RDkitRead( in_file, keep_Hs=True, add_Hs=False ):
+def RDkitRead( in_file, removeHs=False, add_Hs=False ):
   ## Read in SDF file; can choose to add hydrogens or not
   if re.search(r'.sdf', in_file):
-    df = rdpd.LoadSDF(  file_handle(in_file), removeHs=keep_Hs,
+    df = rdpd.LoadSDF(  file_handle(in_file), removeHs=removeHs,
                         smilesName='smiles', molColName='mol' )
     if add_Hs:
       df['mol'] = df.mol.apply(Chem.AddHs)

@@ -39,8 +39,8 @@ from pathos import multiprocessing
 ##########################################################################
 def main( filename, strings, prefixes, ext ):
 
-  df = RDkitRead(filename, keep_Hs=False)
-  print('## Number of mol read from {}: {}\n'.format(filename,len(df.smiles)))
+  df = RDkitRead(filename, add_Hs=False)
+  print('## Number of mol read from \033[34m{0}: \033[31m{1}\033[0m\n'.format(filename,len(df.smiles)))
 
   SMARTS   = strings.split(',')
   Prefixes = prefixes.split(',')
@@ -89,11 +89,11 @@ class SMARTSSearch(object):
 
 ##########################################################################
 ## Read in SMILES or SDF input and add Hs to it
-def RDkitRead( in_file, keep_Hs=True, add_Hs=False ):
+def RDkitRead( in_file, removeHs=True, add_Hs=False ):
   ## Read in SDF file; can choose to add hydrogens or not
   if re.search(r'.sdf', in_file):
     print(' # Reading SDF')
-    df = rdpd.LoadSDF(  file_handle(in_file), removeHs=keep_Hs,
+    df = rdpd.LoadSDF(  file_handle(in_file), removeHs=removeHs,
                         smilesName='smiles', molColName='mol' )
     if add_Hs:
       df['mol'] = df.mol.apply(Chem.AddHs)

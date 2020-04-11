@@ -4,12 +4,14 @@ import sys
 import numpy as np
 import pandas as pd
 from rdkit import Chem
+from rdkit import rdBase
 from rdkit.Chem import QED
+from rdkit.Chem import rdchem
 from rdkit.Chem import PandasTools
+from rdkit.Chem import SaltRemover
 from rdkit.Chem import MolStandardize
 from rdkit.Chem.MolStandardize import rdMolStandardize
-from rdkit.Chem import SaltRemover
-from rdkit.Chem import rdchem
+rdBase.DisableLog('rdApp.*')
 
 msg = '''  > {}
 \t\t[sdf filename]\n
@@ -28,33 +30,43 @@ def main(prm_file):
   ## remove salts and rename the smiles
   print('## Cleaning moleucles...')
   remover = SaltRemover.SaltRemover()
-  prm_df['mol'] = prm_df.MOL.apply(remover.StripMol)
+  chooser = rdMolStandardize.LargestFragmentChooser(preferOrganic=True)
+
+  prm_df['molx']= prm_df.MOL.apply(remover.StripMol)
+  prm_df['mol'] = prm_df.molx.apply(chooser.choose)
   prm_df['smiles'] = prm_df.mol.apply(Chem.MolToSmiles)
-  prm_df['ID'] = prm_df.idnumber
+
+  def add_cb( inp ):
+    return 'CB_'+str(inp)
+  prm_df['ID'] = prm_df.CB_ID.apply(add_cb)
+
+#  prm_df['ID'] = prm_df.CB_ID
+
+  ## shuffle
+  print('## Shuffling molecules...')
+  df = prm_df.sample(frac=1).reset_index(drop=True)
+
   print(prm_df[:10])
 
   ## recalculate molecular properties
   print('## Calculating properties...')
   prm_df['qed']  = prm_df.mol.apply(QED.properties)
   prm_df['MW']   = prm_df.qed.apply(lambda x: x.MW)
-  prm_df['logP'] = prm_df.qed.apply(lambda x: x.ALOGP)
-  prm_df['HBA']  = prm_df.qed.apply(lambda x: x.HBA)
-  prm_df['HBD']  = prm_df.qed.apply(lambda x: x.HBD)
-  prm_df['PSA']  = prm_df.qed.apply(lambda x: x.PSA)
-  prm_df['ROTB'] = prm_df.qed.apply(lambda x: x.ROTB)
-  prm_df['AROM'] = prm_df.qed.apply(lambda x: x.AROM)
-  prm_df['HA']   = prm_df.mol.apply(rdchem.Mol.GetNumHeavyAtoms)
+#  prm_df['logP'] = prm_df.qed.apply(lambda x: x.ALOGP)
+#  prm_df['HBA']  = prm_df.qed.apply(lambda x: x.HBA)
+#  prm_df['HBD']  = prm_df.qed.apply(lambda x: x.HBD)
+#  prm_df['PSA']  = prm_df.qed.apply(lambda x: x.PSA)
+#  prm_df['ROTB'] = prm_df.qed.apply(lambda x: x.ROTB)
+#  prm_df['AROM'] = prm_df.qed.apply(lambda x: x.AROM)
+#  prm_df['HA']   = prm_df.mol.apply(rdchem.Mol.GetNumHeavyAtoms)
   print(prm_df[:10])
   print(' > number of molecules... ',len(prm_df))
-
-  ## shuffle
-  print('## Shuffling molecules...')
-  prm_df = prm_df.reindex(np.random.permutation(prm_df.index))
 
   ## print out molecule properties and smiles (shuffled)
   print('## Writing results...')
   Cols_csv = ['ID','MW','HA','logP','LogS','HBA','HBD','PSA','ROTB','AROM','SaltType','smiles']
   Cols_smi = ['smiles','ID']
+
 
   prm_df.loc[(prm_df.MW > 150.) & (prm_df.MW <= 300.)].to_csv(pref+'.frag.csv.bz2',sep=',',float_format='%.2f',columns=Cols_csv, index=False)
   prm_df.loc[(prm_df.MW > 150.) & (prm_df.MW <= 300.)].to_csv(pref+'.frag.smi',sep='\t',columns=Cols_smi,index=False)

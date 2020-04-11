@@ -29,13 +29,12 @@ list_name = sys.argv[1]
 Chemicals = sys.argv[2].split(',')
 if re.search(r'None', sys.argv[3], re.IGNORECASE):
   option = None
-elif re.search(r'Name', sys.argv[3], re.IGNORECASE): option = 'name'
-elif re.search(r'Rank', sys.argv[3], re.IGNORECASE): option = 'rank'
-elif re.search(r'Score', sys.argv[3], re.IGNORECASE):option = 'score'
-else:
-  sys.exit('\n  ERROR: [Sorting:None|Name|Rank|Score] -- {0} \n'.format(sys.argv[3]))
+elif re.search(r'^Name$', sys.argv[3], re.IGNORECASE): option = 'name'
+elif re.search(r'^Rank$', sys.argv[3], re.IGNORECASE): option = 'rank'
+elif re.search(r'^Score$', sys.argv[3], re.IGNORECASE):option = 'score'
+else: option = sys.argv[3]
 
-
+print(option)
 ##########################################################################
 def main(list_name, Chemicals, option):
 
@@ -64,6 +63,9 @@ def main(list_name, Chemicals, option):
     if   option == 'name': Molecules.sort(key=lambda tup: tup[1])
     elif option == 'rank': Molecules.sort(key=lambda tup: int(tup[2]))
     elif option == 'score':Molecules.sort(key=lambda tup: float(tup[3]))
+    else:
+      print(' ## Using SDF tag to sort ligand order: \033[31m{0}\033[0m\n'.format(option))
+      Molecules.sort(key=lambda tup: float(tup[0].GetProp(option)))
 
   Mols = [mol[0] for mol in Molecules]
   out = Chem.SDWriter(list_name.split('.txt')[0] + '.sdf')
