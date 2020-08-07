@@ -1,0 +1,4 @@
+NAME 1 "Nuc Constraint"
+ENABLED 1 true
+SPHERE 1 4.000000 1.655991 8.219090 2.989428
+Smarts 1 [#7,#8,#16&H]

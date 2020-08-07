@@ -1,0 +1,4 @@
+NAME 1 "Hinge"
+ENABLED 1 true
+SPHERE 1 4.25 3.0 8.5 5.0
+Smarts 1 [#7,#8,#16&H]
