@@ -1,0 +1,103 @@
+#!/usr/bin/python
+
+import sys,os,re,shutil
+from CommonUtility import *
+from rdkit_open import *
+
+##########################################################################
+#
+#   Peter M.U. Ung @ MSSM
+#
+#   v1.0    16.08.03
+#   v1.1    16.10.25    - bugfix
+#   v2.0    17.03.02    read in molecule smi and rename molecule 
+#
+#   Consolidate Schrodinger's IFD top results and put them into a folder
+#       * automatically extract the result structure files from csv 
+#       * consolidate the result structures into pymol 
+#
+##########################################################################
+msg = '''\n    > {0}
+          [IFD result .csv file] 
+          [multi-pdb filename prefix]
+          [Input SDF/SMILES for moleule name]   *Check to confirm name order\n
+      e.g.> x.py report.csv type_IB.dyrk1a.hit1 enza-analogs.smi
+            ** sed "s/glide_docking_dir_2/scoring_dir/" report.csv **\n'''.format(sys.argv[0])
+if len(sys.argv) != 4: sys.exit(msg)
+
+infile = sys.argv[1]    # csv file
+prefix = sys.argv[2]    # prefix of multi-pdb filename
+orig   = sys.argv[3]    # original input file for molecule name and order
+
+##########################################################################
+## Parse the result csv to extract 'filenames'
+Items = []
+for line in file_handle(infile):
+  if re.search(r'Entry', line): continue
+  i = line.split(',')
+  Items.append([int(i[1]), i[5]])	# Ligand number is integer
+
+
+## Extract the result structure in 'filenames'
+LigGroups = {}
+for item in Items:
+  struct_name = item[1].rstrip()
+  if not LigGroups.get(item[0]):
+    LigGroups[item[0]] = [struct_name]
+  else:
+    LigGroups[item[0]].append(struct_name)
+print('# Number of Ligand Group found: {0}'.format(len(LigGroups)))
+ 
+
+## Extract molecule names from the original dataset
+Names = [mol.GetProp('_Name') for mol in rdkit_open([orig])]
+  
+
+##########################################################################
+## create result folder
+if not os.path.exists('1_data'):
+  os.makedirs('1_data')
+shutil.copy(infile, '1_data')
+
+## Find the result files in the result csv and use them to build pymol session
+pml = open('_temp.pml', 'w')
+#for key in xrange(1,len(Structures)+1,1)):
+keylist = sorted(LigGroups.keys())     # sort the 'key' by Ligand number
+print(keylist)
+for key in keylist:
+  with open('_temp.list.{0}'.format(key), 'w') as fo:
+    for mae in LigGroups[key]:
+      name = mae.split('.mae')[0]
+      print(name)
+      fo.write(name+'.pdb\n')
+      os.system('$SCHRODINGER/utilities/structconvert -imae {0}.maegz -opdb _temp.pdb'.format(name))
+      os.system('grep -v "MODEL" _temp.pdb | grep -v "ENDMDL" > {0}.pdb'.format(name))
+
+  os.system('/home/pmung/Dropbox/9_scripts/3_program/structures/0_build_multi_pdb.py _temp.list.{0} {1}.{0}.pdb'.format(key, prefix))  
+  os.system('bzip2 {0}.{1}.pdb'.format(prefix, key))
+  shutil.copy('{0}.{1}.pdb.bz2'.format(prefix, key), '1_data')
+
+  print('key:  '+str(key))
+  print('Name: '+Names[int(key)-1])
+  pml.write('load {0}.{1}.pdb.bz2, {2}.{1}\n'.format(prefix, key,
+                                                     Names[int(key)-1]))
+  pml.write('distance hb.{0}, {0}.{1} and poly, {0}.{1} and org, mode=2\n'.format(Names[int(key)-1], key))
+
+
+pml.write('show cartoon\n')
+pml.write('hide lines\n')
+pml.write('show sticks, org\nshow lines, org\n')
+pml.write('show lines, byres poly within 6 of org\n')
+pml.write('hide (h. and (e. c extend 1))\n')  #hide nonpolar hydrogens
+pml.write('set valence\n')
+pml.write('util.cbaw poly\n')
+pml.write('util.cbas org\n')
+pml.write('center org\n')
+pml.write('zoom org\n')
+
+pml.write('save {0}.pse\n'.format(prefix))
+pml.close()
+
+os.system('pymol -c _temp.pml')
+shutil.copy('{0}.pse'.format(prefix), '1_data')
+

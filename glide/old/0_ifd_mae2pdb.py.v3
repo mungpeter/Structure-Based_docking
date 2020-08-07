@@ -1,0 +1,143 @@
+#!/usr/bin/python
+
+##########################################################################
+#
+#   Peter M.U. Ung @ MSSM
+#
+#   v1.0    16.08.03
+#   v1.1    16.10.25    - bugfix
+#   v2.0    17.03.02    read in molecule smi and rename molecule 
+#   v3.0    17.12.20    use multiprocessing to convert maegz to pdb
+#
+#   Consolidate Schrodinger's IFD top results and put them into a folder
+#       * automatically extract the result structure files from csv 
+#       * consolidate the result structures into pymol 
+#
+##########################################################################
+
+import sys
+msg = '''\n    > {0}
+          [IFD result .csv file] 
+          [multi-pdb filename prefix]
+          [Input SDF/SMILES for moleule name]   *Check to confirm name order\n
+      e.g.> x.py report.csv type_IB.dyrk1a.hit1 enza-analogs.smi
+            ** redirect the files in the original report.csv to correct dir **
+            ** sed "s/glide_docking_dir_2/scoring_dir/" report.csv > report_corr.csv**\n'''.format(sys.argv[0])
+if len(sys.argv) != 4: sys.exit(msg)
+
+import os,re,shutil,multiprocessing
+from rdkit_open import *
+from CommonUtility import *
+
+
+infile = sys.argv[1]    # csv file
+prefix = sys.argv[2]    # prefix of multi-pdb filename
+orig   = sys.argv[3]    # original input file for molecule name and order
+
+##########################################################################
+## Parse the result csv to extract 'filenames'
+Items = []
+for line in file_handle(infile):
+  if re.search(r'Entry', line): continue
+  i = line.split(',')
+  Items.append([int(i[1]), i[5]])	# Ligand number is integer
+
+
+## Extract the result structure in 'filenames'
+LigGroups = {}
+for item in Items:
+  struct_name = item[1].rstrip()
+  if not LigGroups.get(item[0]):
+    LigGroups[item[0]] = [struct_name]
+  else:
+    LigGroups[item[0]].append(struct_name)
+print('# Number of Ligand Group found: {0}'.format(len(LigGroups)))
+ 
+
+## Extract molecule names from the original dataset
+Names = [mol.GetProp('_Name') for mol in rdkit_open([orig])]
+  
+## create result folder
+if not os.path.exists('1_data'):
+  os.makedirs('1_data')
+shutil.copy(infile, '1_data')
+
+## Find the result files in the result csv and use them to build pymol session
+pml = open('_temp.pml', 'w')
+
+#for key in xrange(1,len(Structures)+1,1)):
+keylist = sorted(LigGroups.keys())     # sort the 'key' by Ligand number
+print(keylist)
+
+
+##########################################################################
+## convert maegz files to pdb
+class Maegz2pdb( object ):
+
+  def __init__( self, pref=None, group=None, names=None ):
+    self.group = group
+    self.names = names
+    self.pref  = pref
+  def __call__( self, keylist ):
+    return self.run_convert(keylist)
+
+########################
+
+  def run_convert( self, key ):
+    print('key:  '+str(key))
+    print('Name: '+self.names[int(key)-1])
+
+    with open('_temp.list.{0}'.format(key), 'w') as fo:
+      for idx, mae in enumerate(self.group[key]):
+        name = mae.split('.mae')[0]
+        print(name)
+        fo.write(name+'.pdb\n')
+        os.system('$SCHRODINGER/utilities/structconvert -imae {0}.maegz -opdb _temp.{1}.{2}.pdb'.format(name, key, idx))
+        os.system('grep -v "MODEL" _temp.{1}.{2}.pdb | grep -v "ENDMDL" > {0}.pdb'.format(name, key, idx))
+
+    os.system('/home/pmung/Dropbox/9_scripts/3_program/structures/0_build_multi_pdb.py _temp.list.{0} {1}.{0}.pdb'.format(key, self.pref))
+    os.system('bzip2 {0}.{1}.pdb'.format(self.pref, key))
+    shutil.copy('{0}.{1}.pdb.bz2'.format(self.pref, key), '1_data')
+
+
+##########################################################################
+
+m2p = Maegz2pdb(pref=prefix, group=LigGroups, names=Names)
+
+## Multiprocess for conversion
+mpi = multiprocessing.Pool(processes = multiprocessing.cpu_count())
+mpi.map(m2p, keylist)
+mpi.close()
+mpi.join()
+
+for key in keylist:
+#  m2p(key)   # serial process, use when mulitprocess fails
+
+  pml.write('load {0}.{1}.pdb.bz2, {2}.{1}\n'.format(prefix, key,
+                                                     Names[int(key)-1]))
+  pml.write('distance hb.{0}, {0}.{1} and poly, {0}.{1} and org, mode=2\n'.format(Names[int(key)-1], key))
+
+
+##########################################################################
+## write out pml file for pymol session generation
+pml.write('show cartoon\n')
+pml.write('hide lines\n')
+pml.write('show sticks, org\nshow lines, org\n')
+pml.write('show lines, byres poly within 6 of org\n')
+pml.write('hide (h. and (e. c extend 1))\n')  #hide nonpolar hydrogens
+pml.write('set valence\n')
+pml.write('util.cbaw poly\n')
+pml.write('util.cbas org\n')
+pml.write('center org\n')
+pml.write('zoom org\n')
+
+pml.write('save {0}.pse\n'.format(prefix))
+pml.close()
+
+os.system('pymol -c _temp.pml')
+os.system('bzip2 {0}.pse'.format(prefix))
+shutil.copy('{0}.pse.bz2'.format(prefix), '1_data')
+
+os.system('rm {0}*pdb* {0}.pse.bz2 _temp* '.format(prefix))
+
+##########################################################################

@@ -1,0 +1,68 @@
+#!/bin/csh -f
+#PBS -S /bin/csh
+#PBS -N LIB.RUN
+#PBS -q QUEUE
+#PBS -l WALL
+#PBS -l NODES
+#PBS -M pmung@umich.edu
+#PBS -m abe
+#PBS -r n
+#PBS -V
+#PBS -j oe
+
+module load autodock_vina/1.1.2
+
+set fold = FOLD	# scratch directory with ligand folders
+set home = HOME	# home directory
+set rslt = RSLT	# scratch directory of result 
+set lib  = LIB	# ligand folder; 22_p0.0
+set conf = CONF	# Vina onfiguration file
+
+set start = START	# starting no. of ligand
+set last  = LAST	# ending no. of ligand
+
+if (! -e $rslt) then
+  mkdir $rslt
+endif
+cd $rslt
+cp $home/$conf .
+cp $home/*pdbqt .
+if (! -e $lib) then
+  mkdir $lib
+endif
+
+tar -cf $lib.pdbqt.done.$start.tar $conf
+
+set i = $start
+@ y = $last - $i
+while ($i <= $last)
+  if (-e $fold/$lib/$lib.$i.pdbqt) then
+
+    if (-e $lib/$lib.$i.pdbqt) then
+      echo Vina docked Ligand $lib.$i previously. Skipping
+    else
+      echo Processing Ligand $lib.$i
+
+     time \
+      vina --config $conf                     \
+           --ligand $fold/$lib/$lib.$i.pdbqt  \
+           --out    $lib/$lib.$i.pdbqt        \
+           --log    $lib/$lib.$i.log
+
+      set result = `grep -m 1 "VINA" $lib/$lib.$i.pdbqt`
+      echo "$lib/$lib.$i.pdbqt::$result" >> $lib/$lib.$start.temp
+      
+      tar -rvf $lib.pdbqt.done.$start.tar $lib/$lib.$i.*
+    endif
+  else
+    echo "  #### Ligand $lib.$i.pdbqt is not found ####"
+  endif
+
+  @ i++
+  @ y--
+  echo "  ## Finished $i | Remaining $y ##"
+
+end
+tar -rvf $lib.pdbqt.done.$start.tar $lib/$lib.$start.temp
+
+exit

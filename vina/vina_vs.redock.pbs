@@ -1,0 +1,46 @@
+#!/bin/csh -f
+#PBS -S /bin/csh
+#PBS -N LIB.RUN
+#PBS -q QUEUE
+#PBS -l WALL
+#PBS -l NODES
+#PBS -M pmung@umich.edu
+#PBS -m abe
+#PBS -r n
+#PBS -V
+#PBS -j oe
+
+module load autodock_vina/1.1.2
+
+set fold = FOLD # scratch directory with ligand folders
+set home = HOME # home directory
+set rslt = RSLT # scratch directory of result 
+set lib  = LIB  # ligand folder; 21_p0.0
+set conf = CONF # Vina onfiguration file
+
+cd $rslt
+
+@ i = 1
+foreach pdbqt (`cat $lib/$lib.vina_fail.txt`)
+
+  if (-e $pdbqt) then
+    echo Vina docked Ligand $pdbqt previously. Skipping
+  else
+    echo Processing Ligand: $pdbqt
+
+ time \
+      vina --config $conf         \
+           --ligand $fold/$pdbqt  \
+           --out    $pdbqt        \
+           --log    $pdbqt.log
+
+      set result = `grep -m 1 "REMARK VINA" $pdbqt`
+      echo $pdbqt"::"$result >> $lib/$lib.redock.temp
+  endif
+
+  echo "  ## Finished no. $i: $pdbqt ##"
+
+  @ i = $i + 1
+end
+exit
+

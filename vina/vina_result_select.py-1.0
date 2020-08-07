@@ -1,0 +1,39 @@
+#!/usr/bin/python
+
+import re
+import bz2
+import sys
+import gzip
+
+from rdkit import Chem
+from rdkit_grid_print import grid_print
+from CommonUtility import *
+
+usage = "\n\n  ## Usage: x.py [list name: txt] [sdf file: sdf]\n\n"
+if len(sys.argv) != 3: sys.exit(usage)
+
+list_name = sys.argv[1]
+chemicals = sys.argv[2].split(',')
+
+## Read in the list of selected ligand ID 
+with open(list_name, 'rh') as FILE:
+  List = [line.rstrip() for line in FILE if not re.search(r'^#',line)]
+print len(List)
+
+## Extract the selected ligands from the supplied SDF
+temp = []
+for chemical in chemicals:
+  handle = file_handle(chemical)
+  temp.extend([x for x in Chem.ForwardSDMolSupplier(handle) if x is not None])
+
+sdf = dict()
+for m in temp:
+  sdf[m.GetProp('_Name').split('::')[0]] = m
+
+molecules = [sdf[name] for name in List]
+
+out = Chem.SDWriter(list_name + '.sdf')
+for molecule in molecules: out.write(molecule)
+out.close()
+
+grid_print(list_name, molecules, 'sdf')
