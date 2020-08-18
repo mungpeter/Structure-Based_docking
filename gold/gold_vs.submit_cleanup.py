@@ -20,7 +20,7 @@ msg = '''\n  > {0}
   Optional:
     -genconf    [ Generate GOLD setting file: templ.conf.setting ]
     -nosort     [ No sorting of result ]
-    -constr < > [ Constraint file for docking ]
+    -cstr < >   [ Constraint file for docking ]
     -top  < >   [ Save only the top <n> ligands; forced sorting ]
     -rlig < >   [ Reference ligand file (.mol2) ]\n'''.format(sys.argv[0])
 if len(sys.argv) == 1: sys.exit(msg)
@@ -268,7 +268,7 @@ def UserInput():
                   help='Generate GOLD setting file: templ.conf.setting')
   p.add_argument('-nosort', dest='nosort', action='store_true',
                   help='No sorting of result')
-  p.add_argument('-constr', dest='constr', required=False,
+  p.add_argument('-cstr', dest='constr', required=False,
                   help='Constraint file (optional)')
   p.add_argument('-top', dest='savetop', required=False,
                   help='Save only the top <n> ligands; forced sorting (int ; optional)')
