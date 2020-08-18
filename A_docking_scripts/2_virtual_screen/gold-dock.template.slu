@@ -1,0 +1,59 @@
+#!/bin/csh
+
+#SBATCH -o JBNAME.%J.out
+#SBATCH -e JBNAME.%J.err
+#SBATCH -J JBNAME
+
+#SBATCH -p defq         # defq; himem; gpu
+#SBATCH --qos=verylong  # veryshort=10m;short=2h;medium=1d;long=3d;verylong=14d
+#SBATCH -t 5-00:00:00           # Wall clock limit [d-HH:MM:SS]
+#SBATCH -n XCPUX                # Number of CPU cores required
+
+## For Minerva Cluster Use
+ml csd/2019.0
+conda activate cdpy7
+
+##########################################################################
+# set shell variables (job name, running, working directories, etc)
+set homedir = '/gstore/home/ungm/1_cblb/5_dock' # Home directory of job
+set workdir = '/gstore/scratch/u/ungm/1_cblb'   # Work directory in Scratch
+set griddir = '/gstore/home/ungm/1_cblb/5_dock/PDBDIRECTORY' # Gold receptor dir
+set ligdir  = '/gnet/is2/p01/data/smdd/databases/zinc/zinc_2020/1_zfg20/misc/1_now/zfg20_now.pass'      # LigDB directory
+
+set inp  = INP                  # GOLD settings file
+set rec  = XMOL2NAMEX           # receptor file .mol2
+set cav  = XCAVITYX             # binding site cavity atoms file (.cavity.atoms)
+set cstr = XCONSTRX             # constraint file
+set lig  = XLIGNAMEX            # ligand file (.sdf, gzip/bz2 okay)
+set pref = JBNAME               # result preif
+set cpu  = XCPUX                # number of CPU cores required
+
+set localdr = JBNAME
+
+##########################################################################
+#Set procedure to run
+if (! -e $workdir) then
+  mkdir $workdir
+endif
+cd $workdir
+if (! -e $localdr) then
+  mkdir $localdr
+endif
+cd $localdr
+echo `pwd`
+
+##########################################################################
+
+# Run GOLD job
+$homedir/gold_vs.submit_cleanup.py  \
+  -conf $homedir/$inp               \
+  -rec  $griddir/$rec               \
+  -cav  $griddir/$cav               \
+  -cstr $griddir/$cstr              \
+  -lig  $ligdir/$lig                \
+  -pref $pref                       \
+  -cpu  $cpu
+
+
+exit
+

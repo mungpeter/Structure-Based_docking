@@ -1,0 +1,19 @@
+
+scale           0.67                    # Scaling of GA population (std = 1.0)
+
+grid_origin     50.84,-24.81,34.96      # Grid sphere center coordinates
+grid_radius     10                      # Grid sphere radius
+lig_ref         ""                      # Reference ligand; "" if none
+
+gold_funct      plp                     # CHEMPLP: plp (default);
+
+ga_run          10                      # GA run per ligand (def: 10)
+mol_id          ID                      # SD Tag of mol ID
+
+njobs           20                      # Number of subjobs
+lig_mol_num     105000                  # mol no. in Library (dividable by subjobs)
+
+tmpdsf          dock.sdf                # Suffix of temporary docked SDF result
+findsf          gold_docked.sdf         # Suffix of final docked SDF result
+finssf          gold_docked.txt         # Suffix of final docked SDF rank
+
