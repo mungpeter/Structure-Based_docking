@@ -1,0 +1,114 @@
+#!/bin/csh
+
+##########################################################################
+#
+#	Peter M.U. Ung @ MSSM
+#	v1.0	- 15.06.16	
+#
+#	Run Schrodinger's Glide. Optional to choose to prepare protein(s)
+#	with default settings.
+#
+#	Require all setup files in the home directory
+#	Dock precision level: HTVS or SP
+#	Grid file has the extension: .grid.zip
+#
+##########################################################################
+
+if ($#argv != 5) then
+  echo ''
+  echo '    Usage: x.csh'
+  echo '             [List of Protein] [List of Ligand Database]'
+  echo '             [PDB Directory] [Dock Precision (HTVS|SP)]'
+  echo '             [Prepare Protein? (1|0)]'
+  echo '             [Run Docking?     (1|0)]'
+  echo ''
+  exit
+endif
+if (! -e 'glide-dock.HTVS_SP.template.in') then
+  echo ''
+  echo '    Error: Missing glide-dock.HTVS_SP.template.in'
+  echo ''
+  exit
+endif
+if (! -e 'glide-dock.template.lsf') then
+  echo ''
+  echo '    Error: Missing glide-dock.template.lsf'
+  echo ''
+  exit
+endif
+
+set pdb_list  = $argv[1]
+set lig_list  = $argv[2]
+set pdb_dir   = $argv[3]
+set precision = $argv[4]
+set prepare   = $argv[5]
+set docking   = $argv[6]
+
+##########################################################################
+foreach pdb_file (`cat $pdb_list`)
+  set pdb_name   = `basename $pdb_file .pdb`
+
+  ## Prepare Protein/Grid for Glide
+  if ($prepare == 1) then
+    cd $pdb_dir
+    if (! -e 'schrodinger.hosts') then
+cat > schrodinger.hosts << EOF
+# Set "tmpdir" to a temporary directory in your scratch folder.
+#     e.g. /sc/orga/scratch/your_user_ID/.tmp_schrodinger
+name:        localhost
+ tmpdir:      /hpc/users/ungp01/.tmp_schrodinger
+ Name: mothra_serial_interactive
+ Host: interactive1
+ Processors: 2500
+ Queue: LSF
+ Qargs:  -m mothra -W 30
+ schrodinger: /hpc/packages/minerva-common/schrodinger/2016-4
+EOF
+    endif
+    if (! -e ../glide-grid_template.in) then
+      echo ''
+      echo '    Error: Missing glide-grid_template.in'
+      echo ''
+      exit
+    endif
+
+    ${SCHRODINGER}/utilities/prepwizard -WAIT -SAVE -NOJOBID -NOLOCAL \
+      -disulfides \
+      -rehtreat \
+      -captermini \
+      -propka_pH '7.0' \
+      -fix \
+      -f '3' \
+      -j $pdb_name.run \
+      $pdb_file $pdb_name.maegz
+
+    sed "s/GNAME/$pdb_name/g" ../glide-grid_template.in | \
+    sed "s/GPROTNAME/$pdb_name.maegz/g" \
+      > glide-grid.$pdb_name.in
+
+    ${SCHRODINGER}/glide -WAIT -SAVE -NOJOBID -NOLOCAL -OVERWRITE \
+      glide-grid.$pdb_name.in
+    cd ..
+  endif
+
+  if ($docking == 1) then
+    foreach lig_db (`cat $lig_list`)
+
+      set lig_name = `basename $lig_db .sdf.gz`
+
+      sed "s/GGRIDNAME/$pdb_name.grid.zip/g" glide-dock.HTVS_SP.template.in | \
+      sed "s/GDOCKPRECIS/$precision/g" | \
+      sed "s/GLIGNAME/$lig_db/g" \
+        > $pdb_name.$lig_name.in
+
+      sed "s/JBNAME/$pdb_name.$lig_name/g" glide-dock.template.lsf | \
+      sed "s/PDBDIRECTORY/$pdb_dir/g"  | \
+      sed "s/INP/$pdb_name.$lig_name.in/g" \
+        > $pdb_name.$lig_name.lsf
+      echo $pdb_name.$lig_name > $pdb_name.$lig_name.clean
+
+      qsub $pdb_name.$lig_name.lsf
+    end
+  endif
+
+end

@@ -1,0 +1,12 @@
+## Set "tmpdir" to a temporary directory in your scratch folder.
+#     e.g. /sc/orga/scratch/your_user_ID/tmp
+name:        localhost
+     tmpdir:      /sc/orga/scratch/ungp01/1_super
+     Name: manda_parallel_premium
+     Host: minerva2
+     Processors: 7680
+     Queue: LSF
+     Qargs: -q premium -P acc_schlea02a -m manda -n 12 -R\"span[ptile=12]\" -x -W 0:45
+     schrodinger: /hpc/packages/minerva-common/schrodinger/2015-2
+     
+     

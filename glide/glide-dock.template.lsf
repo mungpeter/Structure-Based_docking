@@ -1,0 +1,101 @@
+#!/bin/csh
+
+#BSUB -L /bin/csh
+#BSUB -o %J.out
+#BSUB -e %J.err
+#BSUB -B
+#BSUB -N
+#BSUB -u peter.ung@mssm.edu
+#BSUB -J JBNAME
+
+#BSUB -P acc_schlea02a 
+#BSUB -q premium	# alloc / premium (1.5x)/ expressalloc (2h max)/ low
+#BSUB -m manda		# New Intel (mothra), 2.5x SU; Legacy AMD (manda) 
+#BSUB -W 1:40		# Wall clock limit for job (hour)
+#BSUB -n 12		# Number of CPU cores required
+#BSUB -R "span[ptile=12]"	# Run [ptile] number of MPI task per node
+
+## For Minerva Cluster Use
+module load schrodinger/2016-4
+#module load python/2.7.6
+
+##########################################################################
+# set shell variables (job name, running, working directories, etc)
+set homedir = '/hpc/users/ungp01/1_kinase/1_super'	# Home directory of job
+set workdir = '/sc/orga/scratch/ungp01/1_super'	# Work directory in Scratch
+set griddir = '\/hpc\/users\/ungp01\/1_kinase\/1_super\/PDBDIRECTORY' # Glide Grid dir: need \
+set ligdir  = '\/sc\/orga\/projects\/schlea02a\/8_lib'  # LigDB: need \
+set localdr = JBNAME
+
+# Set schrodinger.hosts parameters
+set schdir  = '/hpc/users/ungp01/.schrodinger'	# Locate make_Sch_host.csh
+set schtmp  = '\/sc\/orga\/scratch\/ungp01\/1_super'	# Temp directory: need \
+set schhome = '\/hpc\/packages\/minerva-common\/schrodinger\/2016-4' # ${Schrodinger}: need \
+
+set schacct = acc_schlea02a     # project account ID
+set schhost = premium		# alloc / premium (1.5x) / expressalloc (2h max)
+set scharch = manda		# Intel (mothra) 2.5x SU / Legacy AMD (manda)
+set schtime = 1:40		# Wall clock limit for job (hour)
+set schcpu  = 12		# number of CPU cores required
+set schcore = 12		# Run [ptile] number of <PI task per node
+set schnjob = 12		# split job into subjob (< 10,000 mol each)
+
+##########################################################################
+#Set procedure to run
+if (! -e $workdir) then
+  mkdir $workdir
+endif
+cd $workdir
+if (! -e $localdr) then
+  mkdir $localdr
+endif
+cd $localdr
+echo `pwd`
+
+# ESSENTIAL. Create schrodinger.hosts file in working directory for Schrodinger 
+$schdir/make_Sch_host.csh $schhost $schacct $scharch $schcpu \
+          $schcore $schtime $schhome $schtmp
+
+##########################################################################
+# Change schrodinger job input file Ligand Directory
+sed "s/XDIRECTORY/$ligdir/g" $homedir/INP | \
+sed "s/HOMEDIR/$griddir/g" > ./INP
+
+# Run Schrodinger job
+time ${SCHRODINGER}/glide INP \
+        -WAIT -SUBLOCAL -SAVE -noforce \
+        -OVERWRITE \
+        -HOST localhost:$schcpu \
+        -NJOBS $schnjob
+
+#$homedir/glide_clean_folder.csh $homedir/JBNAME.clean
+echo $!
+sleep 5
+@ i = 1
+set naming = `basename INP .in`
+while ($i >= 1)
+  echo check-time $i `date`
+  if (! -e $naming.log ) then
+    echo Glide job failed without writing LOG
+    bkill -J JBNAME
+  else if (! -e $naming\_lib.sdfgz ) then
+    @ i++
+    sleep 5
+  else
+    @ i = 0
+    sleep 5
+    # GLIDE stopped supporting .rept writeout since 2016-3
+    $SCHRODINGER/utilities/glide_sort -norecep -nosort \
+      -r $naming.rept $naming\_lib.sdfgz
+    echo finished, bkill JBNAME `date`
+    bkill -J JBNAME
+    echo pass bkill `date`
+    exit
+    echo exit `date`
+  endif
+end
+
+
+
+exit
+

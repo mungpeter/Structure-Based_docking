@@ -1,0 +1,4 @@
+NAME 1 "Hinge_constraint"
+ENABLED 1 true
+SPHERE 1 4.000000 2.427775 9.037596 3.078348
+Smarts 1 [#7,#8,#16&H]

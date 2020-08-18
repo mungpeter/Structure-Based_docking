@@ -1,0 +1,13 @@
+receptor = ksr2_dimer_2Y4I_LD_apo.pdbqt
+
+center_x = 6
+center_y = 6 
+center_z = 12
+
+size_x = 32
+size_y = 26
+size_z = 30
+
+cpu          = 1
+energy_range = 3
+num_modes    = 8
