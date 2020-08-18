@@ -158,8 +158,13 @@ def ConsensusScores(Dict, score_best, conss_best, prefix,
                                     top_percent, len(Dict), len(Consensus)))
 
   for Item in Consensus:
-    out.write( '{0}\t{1:.4f}\t{2}\t{3:.4f}\t{4}\n'.format(
-                Item[1],Item[0],Item[2],Item[3],Item[4]) )
+    print(Item)
+    try:
+      float(Item[3])
+    except ValueError:
+      Item[3] = 0.0
+    out.write( '{0}\t{1}\t{2}\t{3}\t{4}\n'.format(
+                Item[1],(Item[0]),Item[2],Item[3],Item[4]) )
   
   # Print frequency of model with top scoring ligands
   for Item in TopModelFrequency(Consensus, top_percent):

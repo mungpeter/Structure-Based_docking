@@ -62,7 +62,7 @@ time ${SCHRODINGER}/glide INP \
 
 #$homedir/glide_clean_folder.csh $homedir/JBNAME.clean
 echo $!
-sleep 5m
+sleep 10
 
 @ i = 1
 set naming = `basename INP .in`
@@ -73,7 +73,7 @@ while ($i >= 1)
     bkill -J JBNAME
   else if (! -e $naming\_lib.sdfgz ) then
     @ i++
-    sleep 3
+    sleep 5
   else
     @ i = 0
     # GLIDE stopped supporting .rept writeout since 2016-3

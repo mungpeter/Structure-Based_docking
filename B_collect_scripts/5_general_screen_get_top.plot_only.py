@@ -6,7 +6,7 @@ MSG = '''\n  ## Usage: x.py
              [Number of Top MOL in output: int]
              [docking software: fred | sch | etc]
              [Prefix of Output png, and txt files]\n
-             [optional: -hmax=< default fred:-14.0 | sch:-10.0 >: float]
+             [optional: -hmax=< default fred:-15.0 | sch:-10.0 >: float]
              [optional: -hmin=< default fred: -2.0 | sch:-3.0  >: float]\n
          ##  TXT and SDF files can also be in GZip/BZip2 format\n
          e.g.: x.py "*_score.txt"
@@ -25,7 +25,7 @@ for argv in sys.argv:
   if re.search('sch',sys.argv[3]):
     upper, lower = -10., 0.
   else:
-    upper, lower = -14., -2.  
+    upper, lower = -15., -2.  
   if re.search(r'-hmax=', argv): upper = float(argv.split('=')[1])
   if re.search(r'-hmin=', argv): lower = float(argv.split('=')[1])
 
@@ -45,7 +45,7 @@ def doit( all_txt, all_top, dock, prefix ):
 
     all_df = ExtractScoreInfo( File_Names )
     ## Make histogram of ditribution of FRED scores
-    Histogram( all_df.GlideScore, all_top, top_name, dock, upper, lower )
+    Histogram( all_df.Score, all_top, top_name, dock, upper, lower )
     print("\n  ## Finished plotting overall Top-Ranks ##\n {0} / {1}\n\n".
             format(upper, lower))
 
@@ -53,10 +53,12 @@ def doit( all_txt, all_top, dock, prefix ):
 #######################################################################
 def ExtractScoreInfo( File_Names ):
   ## From the .fred_score.txt, extract the scores for ranking
-  data = np.genfromtxt(File_Names[0], comments=['#','Title', 'Name'],
-          dtype={'formats': ('S20', float),'names': ('Title', 'Score')})
+#  data = np.genfromtxt(File_Names[0], comments=['#','Title', 'Name'],
+#          dtype={'formats': ('S20', float),'names': ('Title', 'Score')})
 
-  d_df = pd.DataFrame(data, columns=['Title','Score']).sort_values(by=['Score'])
+#  d_df = pd.DataFrame(data, columns=['Title','Score']).sort_values(by=['Score'])
+  d_df = pd.read_csv(File_Names[0], header=None, comment='#', sep='\s+')
+  d_df.columns = ['Title', 'Score']
   
 #  print(d_df[:20])
   x_df = d_df.loc[:5, ['Title', 'Score'] ]
