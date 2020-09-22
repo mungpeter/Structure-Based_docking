@@ -1,84 +1,110 @@
 #!/usr/bin/env python3
 
-##########################################################################
-#
-#   Peter M.U. Ung @ MSSM
-#
-#   v1.0    -- 13.??.??
-#   v2.0    -- the script will sort the selected molecules by ranking/score
-#
-#
-##########################################################################
-
 import sys
 usage = '''\n\n  ## Usage: {0}
-              [list name: txt] 
-              [sdf file(s): sdf | sep by ',']
-              [Sorting: None|Name|Rank|Score]\n'''.format(sys.argv[0])
-if len(sys.argv) != 4: sys.exit(usage)
+      -list < >  [ List of Mol ID to be extracted ]   
+      -file <+>  [ SDF file(s): sdf ]   * gzip,bzip2 accepted
+      -pref < >  [ Output Prefix ]\n
+  Optional:
+      -tag  < >  [ SDF tag of MOL identifier (Def: 'ID') ]
+      -sort < >  [ Sort based on SDF Tag, or "Name,Rank, Score" (Def: None) ]\n'''.format(sys.argv[0])
+if len(sys.argv) < 4: sys.exit(usage)
 
-import re,glob
+import re,gc
 import bz2,gzip
 import pandas as pd
 
 from rdkit import Chem
-from rdkit_grid_print import grid_print
+from rdkit.Chem import PandasTools as rdpd
 
+from argparse import ArgumentParser
 
-list_name = sys.argv[1]
-Chemicals = sys.argv[2].split(',')
-if re.search(r'None', sys.argv[3], re.IGNORECASE):
-  option = None
-elif re.search(r'^Name$', sys.argv[3], re.IGNORECASE): option = 'name'
-elif re.search(r'^Rank$', sys.argv[3], re.IGNORECASE): option = 'rank'
-elif re.search(r'^Score$', sys.argv[3], re.IGNORECASE):option = 'score'
-else: option = sys.argv[3]
-
-print(option)
 ##########################################################################
-def main(list_name, Chemicals, option):
+def main():
 
+  args = UserInput()
+  if args.id_tag:
+    id_tag = args.id_tag
+  else:
+    id_tag = 'Name'
+  if args.sort_tag:
+    sort_tag = args.sort_tag
+  else:
+    sort_tag = False
+
+###############
   ## Read in the list of selected ligand ID 
-  df   = pd.read_csv(list_name, delimiter='\s+', header=None, comment='#').dropna()
-  List = df.loc[:, 0].to_numpy()
-  print('\n > Number of items in <{}>: {}\n'.format( list_name, len(List) ))
+  n_df     = pd.read_csv(args.mol_id, delimiter='\s+', header=None, comment='#').dropna()
+  keywords = n_df.loc[:, 0].to_list()
+  print('\n > Number of items in <{}>: {}\n'.format( args.mol_id, len(keywords) ))
 
+  ## Extract the selected ligands from the supplied SDFs
+  mol_sele = []
+  for infile in args.infiles:
+    df = RDkitRead(infile, removeHs=False)
+    Items = df['ID'].apply(CheckID)
+    df['Name']  = list(zip(*Items))[0]
+    df['Rank']  = list(zip(*Items))[1]
+    df['Score'] = list(zip(*Items))[2]
+    df['Soft']  = list(zip(*Items))[3]
+    mol_sele.append( df[ df[id_tag].isin(keywords) ] )
+    del df
+    gc.collect()
 
-  ## Extract the selected ligands from the supplied SDF
-  print(' > List of structure file(s) read: \n',Chemicals)
-  temp = rdkit_open(Chemicals)
+  all_df = pd.concat(mol_sele).reset_index(drop=True)
+  found_id  = all_df[id_tag].to_list()
+  missed_id = [x for x in keywords if x not in set(found_id)]
 
-  sdf = dict()
-  for m in temp:
-    if re.search(r'::', m.GetProp('_Name')):
-      name, rank, score, x = m.GetProp('_Name').split('::')
-      sdf[name] = [m, name, rank, score]
-    else:
-      name = m.GetProp('_Name')
-      sdf[name] = [m, name, 0, 0.0]
-  Molecules = [sdf[chem] for chem in List if chem is not None]
+  if missed_id is False:
+    print('\033[31m  Info: \033[35m{0}\033[31m MOL cannot be found:\033[0m'.format(len(missed_id)))
+    print(missed_id)
 
   ## Sort data, if needed
-  if option is not None:
-    if   option == 'name': Molecules.sort(key=lambda tup: tup[1])
-    elif option == 'rank': Molecules.sort(key=lambda tup: int(tup[2]))
-    elif option == 'score':Molecules.sort(key=lambda tup: float(tup[3]))
-    else:
-      print(' ## Using SDF tag to sort ligand order: \033[31m{0}\033[0m\n'.format(option))
-      Molecules.sort(key=lambda tup: float(tup[0].GetProp(option)))
+  if sort_tag:
+    all_df.sort_values(by=[sort_tag], ascending=True, inplace=True)
 
-  Mols = [mol[0] for mol in Molecules]
-  out = Chem.SDWriter(list_name.split('.txt')[0] + '.sdf')
-  for molecule in Mols: 
-    out.write(molecule)
-  out.flush()
-  out.close()
-
-  grid_print(list_name.split('.txt')[0], Mols, 'sdf')
-
-
+  rdpd.WriteSDF(all_df, args.outpref+'.sdf.gz', molColName='mol', properties=list(all_df.columns))
 
 ##########################################################################
+##
+def CheckID( id ):
+  if re.search(r'::', id):
+    name, rank, score, soft = id.split('::')
+    return [name, rank, score, soft]
+  else:
+    return [id, 0, 0.0, '']
+
+##########################################################################
+## Read in SMILES or SDF input and add Hs to it
+def RDkitRead( in_file, removeHs=True, add_Hs=False ):
+  ## Read in SDF file; can choose to add hydrogens or not
+  if re.search(r'.sdf', in_file):
+    print(' # Reading SDF')
+    df = rdpd.LoadSDF(  file_handle(in_file), removeHs=removeHs,
+                        idName='ID', molColName='mol' )
+    df['smiles'] = df.mol.apply(lambda m:Chem.MolToSmiles(Chem.RemoveHs(m)))
+    if add_Hs:
+      df['mol'] = df.mol.apply(Chem.AddHs)
+
+  ## Read in SMILES file, check if there is a header "smiles"
+  if re.search(r'.smi', in_file):
+    print('# Reading SMI')
+    with file_handle(in_file) as fi:
+      if re.search('smi', str(fi.readline()), re.IGNORECASE):
+        print('# Smiles input has Header #\n')
+        df = pd.read_csv(in_file, sep='\s+', comment='#').dropna()
+        df.columns = ['smiles','ID']
+      else:
+        print('# Smiles input has NO Header #\n')
+        df = pd.read_csv(in_file, header=None, sep='\s+', comment='#').dropna()
+        df.columns = ['smiles','ID']
+    rdpd.AddMoleculeColumnToFrame(df, smilesCol='smiles', molCol='mol')
+    df['smiles'] = df.mol.apply(Chem.MolToSmiles)
+
+  print('## Number of MOL read from {}: {}\n'.format(in_file,len(df.smiles)))
+  return df
+
+#########################################################################
 ## Handle gzip and bzip2 file if the extension is right. otherwise, just open
 ## outuput: file handle
 def file_handle(file_name):
@@ -87,44 +113,45 @@ def file_handle(file_name):
   elif re.search(r'.bz2$', file_name):
     handle = bz2.BZ2File(file_name, 'rb')
   else:
-    handle = open(file_name, 'r')
-
+    if re.search(r'.smi', file_name):
+      handle = open(file_name, 'r')
+    else:
+      handle = file_name
   return handle
 
-#######################################################################
-## new version of rdkit distinguish the input source of the file, treating
-## regular utf-8 file as str input and bytes file (zipped) as object input.
-## Forward_supplier only takes bytes files and Regular_supplier takes regulars.
-## To get around this, use file('x.sdf') to make utf-8 file as an object.
 
-def rdkit_open(File_Tuple):
+##########################################################################
+def UserInput():
+  p = ArgumentParser(description='Command Line Arguments')
 
-  List = []
+  p.add_argument('-list', dest='mol_id', required=True,
+                  help='List of Mol_ID to be extracted')
+  p.add_argument('-file', dest='infiles', required=True, nargs='+',
+                  help='SDF File(s) * gzip,bzip2 accepted')
+  p.add_argument('-pref', dest='outpref', required=True,
+                  help='Output prefix')
 
-  for f in (File_Tuple):
-    handle = file_handle(f)
+  p.add_argument('-tag', dest='id_tag', required=False,
+                  help='Optional: SDF Tag to be used to select MOL (Def: ID)')
+  p.add_argument('-sort', dest='sort_tag', required=False,
+                  help='Optional: Sorting based on SDF Tag, or "Name, Rank, Score" (Def: None)')
 
-    if re.search(r'.sdf', f):
-      Mol = [x for x in Chem.ForwardSDMolSupplier(handle, removeHs=False)
-              if x is not None]
-
-    if re.search(r'.smi', f):
-      with handle as fi:
-        first_line = fi.readline()
-
-      if re.search(r'smiles', first_line, re.IGNORECASE):
-        Mol = [x for x in Chem.SmilesMolSupplier(f, titleLine=True,
-                  delimiter=' |\t|,') if x is not None]
-      else:
-        Mol = [x for x in Chem.SmilesMolSupplier(f, titleLine=False,
-                  delimiter=' |\t|,') if x is not None]
-
-    print( "\n# Found mol in {0}: {1}\n".format(f, len(Mol)))
-    for mol in Mol: List.append(mol)
-
-  return List
+  return p.parse_args()
 
 
-###########################################################################
+##########################################################################
 if __name__ == '__main__':
-  main(list_name, Chemicals, option)
+  main()
+
+
+##########################################################################
+#
+#  Peter M.U. Ung @ gRED
+#
+#  v1   20.09.21
+#  
+#  *New Version based on RDkit PandasTools*
+#
+#  Extract and sort the selected molecules by ranking/score
+#
+##########################################################################

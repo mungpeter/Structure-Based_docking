@@ -20,7 +20,7 @@ msg = '''\n  > {0}
   Optional:
     -genconf    [ Generate GOLD setting file: templ.conf.setting ]
     -nosort     [ No sorting of result ]
-    -cstr < >   [ Constraint file for docking ]
+    -cstr < >   [ Constraint filename in structure folder for docking ]
     -top  < >   [ Save only the top <n> ligands; forced sorting ]
     -rlig < >   [ Reference ligand file (.mol2) ]\n'''.format(sys.argv[0])
 if len(sys.argv) == 1: sys.exit(msg)
@@ -102,7 +102,7 @@ def main():
 
   ## combine all subjob data, sort by ranking, output docked sdf and rank
   ## save only top ligands if needed
-  xdf = pd.concat(dock_list)
+  xdf = pd.concat(list(filter(None,dock_list)))
   if not args.nosort:
     xdf.sort_values(by=[score], ascending=True, inplace=True)
     if args.savetop:
@@ -153,9 +153,14 @@ def GenerateConfFiles( settings ):
 
       for x in keywords.keys():
         if re.search(keywords[x], line):
-          if not st[x]:    # ignore line if variable is ''
+          if not st[x] or st[x] == '""':    # ignore line if variable is ''
             continue
-          tmp = re.sub(keywords[x], st[x], line)
+          if keywords[x] == 'XCONSTRAINTSX' and st[x] != '""':
+            with open(st[x],'r') as fi:
+              constr = ''.join(list(filter(None,[l.rstrip()+'\n' for l in fi])))
+            tmp = re.sub(keywords[x], constr, line)
+          else:
+            tmp = re.sub(keywords[x], st[x], line)
           if re.search('X(\w+)X', tmp):  # if multiple vars in line
             line = tmp
           else:
@@ -179,19 +184,21 @@ def GenerateConfFiles( settings ):
 def RunGOLD( conf ):
   os.system('gold_auto {0}'.format(conf))
 
+def gold_scale( num ):       ## Scale the score by -0.1x
+  return -(float(num)/10)
 
 ## Rescale docking scores, rename MOL title to pre-GOLD title, output 
 ## modified SDF, keep dataframe in memory for later use
 def RescaleRename( in_sdf, out_sdf, mol_id, score ):
-  df   = rdpd.LoadSDF(in_sdf, removeHs=False, molColName='ROMol').fillna('')
-  s_id = df[mol_id]
-
-  def gold_scale( num ):       ## Scale the score by -0.1x
-    return -(float(num)/10)
-
-  for idx, row in df.iterrows():
-    df['ROMol'][idx].SetProp('_Name', s_id[idx])
-  df[score] = df[score].apply(gold_scale)
+  if not os.path.exists(in_sdf):
+    df = None
+  else:
+    df   = rdpd.LoadSDF(in_sdf, removeHs=False, molColName='ROMol').fillna('')
+    s_id = df[mol_id]
+    print('## Reading in mol {0}: {1}'.format(in_sdf, len(df)))
+    for idx, row in df.iterrows():
+      df['ROMol'][idx].SetProp('_Name', s_id[idx])
+    df[score] = df[score].apply(gold_scale)
 
   return df
 
