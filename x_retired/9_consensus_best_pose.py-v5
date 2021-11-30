@@ -5,11 +5,10 @@
 #	Peter M.U. Ung @ MSSM
 #
 #	v1.0	14.05.10
-#   v1.1    14.06.04 -- change Score files input format
-#   v3.0    14.09.10 -- correct 'average' sdf output bug
-#   v5.0    14.09.18 -- reqirement to reach top X % in Y number of
-#                       model to be considered in the consensus result
-#   v6.0    21.11.29    add .xz compression capability
+#       v1.1    14.06.04 -- change Score files input format
+#       v3.0    14.09.10 -- correct 'average' sdf output bug
+#       v5.0    14.09.18 -- reqirement to reach top X % in Y number of
+#                           model to be considered in the consensus result
 #
 #	Purpose: perform a consensus of results from a set of dockings to 
 #	         a single receptor. A molecule has to be in the top <X>% of
@@ -41,7 +40,7 @@ msg = '''\n    > {0}
 if len(sys.argv) != 7: sys.exit(msg)
 
 import re,glob
-import gzip,bz2,lzma
+import gzip,bz2
 import decimal
 import operator
 import numpy as np
@@ -281,8 +280,6 @@ def ExtractMol(List, score_best, prefix):
 def file_handle(file_name):
   if re.search(r'.gz$', file_name):
     handle = gzip.open(file_name, 'rb')
-  if re.search(r'.xz$', file_name):
-    handle = lzma.open(file_name, 'rb')
   elif re.search(r'.bz2$', file_name):
     handle = bz2.BZ2File(file_name, 'rb')
   else:

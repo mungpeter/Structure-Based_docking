@@ -14,8 +14,6 @@
 ##  v4.0  - 18.10.31 - add option to use only the top X molecules
 ##  v4.1  - 19.05.16   updated html grid library, add isomer diplay in figure
 ##                      go around a bug with python3 rdkit
-##  v5.0  - 20.12.05   setting if generate image/pdf file
-##  v6.0  - 21.11.29   add .xz compression capability
 ##
 ##	Purpose: Summerize docking result with Chemical similarity, Rank
 ##		 the results by clusters and the first set of docking inputs
@@ -59,28 +57,23 @@
 ###########################################################################
 
 import os,sys
-msg = """\n## Usage: x.py 
-      [ Docking inputs: sdf ] gz,bz2,xz  - accept multiple files "*.sdf,x.sdf"
-      [ Tanimoto Cutoff: float ]
-      [ output prefix ]
-      [ receptor structure: pdb ]
-  Optional:              
-      [ -nopdf    Do not generate mol cluster pdf ]
-      [ -nopymol  Do not generate PyMOL session ]
-      [ -top=<no. of mol>: int ]
-      [ -sortby=<SDF tag> ]
-      [ -dl    DayLight Fingerprint      
-        -ec    ECFP_4 Fingerprint (Default)
-        -ms    MACCS 166-bit Key ]
+msg = """\n  ## Usage: x.py 
+              [Docking inputs: sdf]     - accept multiple files "*.sdf,x.sdf"
+              [Tanimoto Cutoff: float]
+	      [output prefix] [receptor structure: pdb]
+              [Optional: -top=<no. of mol>: int]
+              [Optional: -dl    DayLight Fingerprint      
+                         -ec    ECFP_4 Fingerprint (Default)
+                         -ms    MACCS 166-bit Key ]
 
-    # and output a list of molecule png (temp.$name.png)
-      [png of clustered ligands]
+              # and output a list of molecule png (temp.$name.png)
+              [png of clustered ligands]
 
-    e.g.>  x.py vina.sdf,fred.sdf,ehits.sdf 
-                0.4 output.clust-04 receptor.pdb -dl\n\n"""
-if len(sys.argv) < 5 or len(sys.argv) > 10: sys.exit(msg)
+             e.g.>  x.py vina.sdf,fred.sdf,ehits.sdf 
+                         0.4 output.clust-0.4 receptor.pdb -dl\n\n"""
+if len(sys.argv) < 5 or len(sys.argv) > 7: sys.exit(msg)
 
-import re,gzip,bz2,lzma,glob
+import re,gzip,bz2,glob
 #import PIL.Image
 #import html
 #import cairo
@@ -101,23 +94,15 @@ from tqdm import tqdm
 
 fingerprint = '-ec'
 top_mol = None
-img_pdf = True
-gen_pym = True
 for argv in sys.argv:
-  if re.search(r'-nopdf', argv):
-    img_pdf = False
-  if re.search(r'-nopymol', argv):
-    gen_pym = False
   if re.search(r'-top=', argv):
     top_mol = int(argv.split('top=')[1])
-  if re.search(r'-sortby=', argv):
-    sortby  = argv.split('-sortby=')[1]
   if re.search(r'-ec', argv):
-    fingerprint = 'ECFP'
+    fingerprint = '-ec'
   if re.search(r'-ms', argv):
-    fingerprint = 'MACCS'
+    fingerprint = '-ms'
   if re.search(r'-dl', argv):
-    fingerprint = 'Daylight'
+    fingerprint = '-dl'
   
 ##########################################################################
 ## Sort and compare to eliminate duplicate
@@ -132,19 +117,14 @@ def main( filenames, CUT, OUTPUT_PREFIX, REF_PDB ):
   ## Make clusters of all imported results
   output_name = OUTPUT_PREFIX
   Mol_Cluster = Do_Fp(All_Hit, CUT, output_name, fingerprint)
-#  if gen_pym:
-#    GenPyMOLClust(Mol_Cluster, output_name, REF_PDB, Dock_Files)
-#  if img_pdf:
-#    GenClustTable(Mol_Cluster, output_name, column=5)
+  GenPyMOLClust(Mol_Cluster, output_name, REF_PDB, Dock_Files)
+  GenClustTable(Mol_Cluster, output_name, column=5)
 
   ## Show clusters of imported results that have at least 1 overlap
   if len(Multi_Hit) > 0:
     output_name = OUTPUT_PREFIX+'.multi-hit'
     Mol_Cluster = Do_Fp(Multi_Hit, CUT, output_name, fingerprint)
-
-  if gen_pym:
     GenPyMOLClust(Mol_Cluster, output_name, REF_PDB, Dock_Files)
-  if img_pdf:
     GenClustTable(Mol_Cluster, output_name, column=5)
 
 
@@ -211,18 +191,18 @@ def SortDockFiles( Dock_Files, top_mol ):
 ########################################################################
 
 def Do_Fp( Mol, cutoff, output_name, fingerprint ):
-  if fingerprint == 'Daylight':
+  if fingerprint == '-dl':
     #### Daylight-like fingerprint ####
     from rdkit.Chem.Fingerprints import FingerprintMols
     print('  -- Calculating with DayLight-like Fingerprint --')
     Fp = [FingerprintMols.FingerprintMol(x) for x in Mol]
 
-  if fingerprint == 'ECFP':
+  if fingerprint == '-ec':
     #### Morgan (ECFP-like) fingerprint ####
     print('  -- Calculating with Morgan (ECFP_4) Fingerprint --')
     Fp = [AllChem.GetMorganFingerprintAsBitVect(x, 2, 2048) for x in Mol]
 
-  if fingerprint == 'MACCS':
+  if fingerprint == '-ms':
     #### MACCS 166-bit keys ####
     from rdkit.Chem import MACCSkeys
     print('  -- Calculating with MACCS 166-bit Keys --')
@@ -249,7 +229,7 @@ def Do_Fp( Mol, cutoff, output_name, fingerprint ):
   Multi_list  = []		# List of all clusters
   Single_list = []	# Mol that are scored as a single cluster
 
-  for cid, Cluster in enumerate(M_Clusters):
+  for Cluster in M_Clusters:
     # If the cluster has multiple members, rank them based on average of all ranks
     if len(Cluster) == 1:
       m = Cluster[0]
@@ -262,11 +242,11 @@ def Do_Fp( Mol, cutoff, output_name, fingerprint ):
           r = str(np.average(Y))
         else:			# otherwise, divide the rank by 2
           r = str(float(s[1])/2.0)
-        mol = MolSetProp(m, s[0],s[1],s[2],s[3],r, cid, fingerprint)
-        Single_list.append([mol,s[0],s[1],s[2],s[3],r, cid, fingerprint])	#(Mol, Name, Rank, Score, Type, rank_avg, cluster, fp)
+        mol = MolSetProp(m, s[0],s[1],s[2],s[3],r)
+        Single_list.append([mol,s[0],s[1],s[2],s[3],r])	#(Mol, Name, Rank, Score, Type, rank_avg)
       else:
-        mol = MolSetProp(m, i,'','','','',cid,fingerprint)
-        Single_list.append([mol, i,'','','',0,cid,fingerprint])
+        mol = MolSetProp(m, i,'','','','')
+        Single_list.append([mol, i,'','','',0])
     else:
       clust_list = []
       for m in Cluster:
@@ -280,11 +260,11 @@ def Do_Fp( Mol, cutoff, output_name, fingerprint ):
           else:
             r = str(float(s[1])/2.0)
           ## [mol_data, Name, Rank, Score, Type, rank_avg]
-          mol = MolSetProp(m, s[0],s[1],s[2],s[3],r,cid,fingerprint)
-          clust_list.append([mol,s[0],s[1],s[2],s[3],r,cid,fingerprint])
+          mol = MolSetProp(m, s[0],s[1],s[2],s[3],r)
+          clust_list.append([mol,s[0],s[1],s[2],s[3],r])
         else:
-          mol = MolSetProp(m, i, '', '', '', '', cid,fingerprint)
-          clust_list.append([mol, i,'','','',0,cid,fingerprint])
+          mol = MolSetProp(m, i, '', '', '', '')
+          clust_list.append([mol, i,'','','',0])
       Multi_list.append(clust_list)
 
   Multi_list.append(Single_list)
@@ -299,13 +279,12 @@ def Do_Fp( Mol, cutoff, output_name, fingerprint ):
 
 
 #####################################################################
-def MolSetProp( mol, name, rank, score, s_type, r_avg, cid, fp ):
+def MolSetProp( mol, name, rank, score, s_type, r_avg ):
   mol.SetProp('Name', name)
   mol.SetProp('Rank', rank)
   mol.SetProp('Score',score)
   mol.SetProp('Type', s_type)
   mol.SetProp('RankAvg', r_avg)
-  mol.SetProp('{0}_Cluster'.format(fp), str(cid))
   return mol
 
 
@@ -420,8 +399,6 @@ def GenClustTable( Mol_List, output_name, column=5 ):
 def file_handle(file_name):
   if re.search(r'.gz$', file_name):
     handle = gzip.open(file_name, 'rb')
-  elif re.search(r'.xz$', file_name):
-    handle = lzma.open(file_name, 'rb')
   elif re.search(r'.bz2$', file_name):
     handle = bz2.BZ2File(file_name, 'rb')
   else:

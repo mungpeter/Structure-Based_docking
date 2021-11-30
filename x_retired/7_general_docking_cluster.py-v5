@@ -15,7 +15,6 @@
 ##  v4.1  - 19.05.16   updated html grid library, add isomer diplay in figure
 ##                      go around a bug with python3 rdkit
 ##  v5.0  - 20.12.05   setting if generate image/pdf file
-##  v6.0  - 21.11.29   add .xz compression capability
 ##
 ##	Purpose: Summerize docking result with Chemical similarity, Rank
 ##		 the results by clusters and the first set of docking inputs
@@ -59,28 +58,28 @@
 ###########################################################################
 
 import os,sys
-msg = """\n## Usage: x.py 
-      [ Docking inputs: sdf ] gz,bz2,xz  - accept multiple files "*.sdf,x.sdf"
-      [ Tanimoto Cutoff: float ]
-      [ output prefix ]
-      [ receptor structure: pdb ]
+msg = """\n  ## Usage: x.py 
+        [ Docking inputs: sdf ]     - accept multiple files "*.sdf,x.sdf"
+        [ Tanimoto Cutoff: float ]
+        [ output prefix ]
+        [ receptor structure: pdb ]
   Optional:              
-      [ -nopdf    Do not generate mol cluster pdf ]
-      [ -nopymol  Do not generate PyMOL session ]
-      [ -top=<no. of mol>: int ]
-      [ -sortby=<SDF tag> ]
-      [ -dl    DayLight Fingerprint      
-        -ec    ECFP_4 Fingerprint (Default)
-        -ms    MACCS 166-bit Key ]
+        [ -nopdf    Do not generate mol cluster pdf ]
+        [ -nopymol  Do not generate PyMOL session ]
+        [ -top=<no. of mol>: int ]
+        [ -sortby=<SDF tag> ]
+        [ -dl    DayLight Fingerprint      
+          -ec    ECFP_4 Fingerprint (Default)
+          -ms    MACCS 166-bit Key ]
 
-    # and output a list of molecule png (temp.$name.png)
-      [png of clustered ligands]
+              # and output a list of molecule png (temp.$name.png)
+              [png of clustered ligands]
 
-    e.g.>  x.py vina.sdf,fred.sdf,ehits.sdf 
-                0.4 output.clust-04 receptor.pdb -dl\n\n"""
+             e.g.>  x.py vina.sdf,fred.sdf,ehits.sdf 
+                         0.4 output.clust-0.4 receptor.pdb -dl\n\n"""
 if len(sys.argv) < 5 or len(sys.argv) > 10: sys.exit(msg)
 
-import re,gzip,bz2,lzma,glob
+import re,gzip,bz2,glob
 #import PIL.Image
 #import html
 #import cairo
@@ -420,8 +419,6 @@ def GenClustTable( Mol_List, output_name, column=5 ):
 def file_handle(file_name):
   if re.search(r'.gz$', file_name):
     handle = gzip.open(file_name, 'rb')
-  elif re.search(r'.xz$', file_name):
-    handle = lzma.open(file_name, 'rb')
   elif re.search(r'.bz2$', file_name):
     handle = bz2.BZ2File(file_name, 'rb')
   else:

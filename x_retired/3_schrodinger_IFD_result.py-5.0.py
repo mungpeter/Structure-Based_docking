@@ -12,7 +12,6 @@
 #                       simplify the folder management of the results
 #   v5.0    19.12.25    remove dependence on separate .py scripts
 #                       renamed from /glide/0_glide_ifd_mae2pdb.py
-#   v6.0    21.06.09    update to tqdm structconvert, bz2 byte behavior
 #
 #   Consolidate Schrodinger's IFD top results and put them into a folder
 #       * automatically extract the result structure files from csv 
@@ -22,12 +21,12 @@
 
 import sys
 msg = '''\n    > {0}
-\t\t[ Ligand file: sdf ]    ** use full path to sdf file
-\t\t[ IFD run directory ]
-\t\t[ Output file prefix ]\n
+\t\t[ Ligand file: sdf ] *give full path to sdf file
+\t\t[ directory of IFD result ]
+\t\t[ output filename prefix ]\n
       e.g.> x.py atp.sdf InducedFit_1 type_IB.dyrk1a.hit1\n
-  *** start outside of the _ifd folder ***
-  *** load Schrodinger, PyMOL ***\n'''.format(sys.argv[0])
+      ***   start outside of the _ifd folder
+            '''.format(sys.argv[0])
 if len(sys.argv) != 4: sys.exit(msg)
 
 import os,re
@@ -38,8 +37,8 @@ import pandas as pd
 from rdkit import Chem
 from rdkit.Chem import PandasTools as rdpd
 
-#from tqdm import tqdm
-import multiprocessing
+from tqdm import tqdm
+from pathos import multiprocessing
 
 ligand  = sys.argv[1]
 inpref  = sys.argv[2]    # IFD result directory
@@ -129,7 +128,7 @@ class Maegz2pdb( object ):
 ########################
   def build_multi_pdb( self, tmp_pdb, key ):
     # Write to a bz2 multi-pdb file, with MODEL {n} as designation
-    with bz2.open('{0}.{1}.pdb.bz2'.format(self.pref, key), 'wt') as fo:
+    with bz2.open('{0}.{1}.pdb.bz2'.format(self.pref, key), 'wb') as fo:
 
       for idx, pdb in enumerate(tmp_pdb):
         fo.write('MODEL {0}\n'.format(idx+1))
@@ -152,8 +151,7 @@ class Maegz2pdb( object ):
       tmp_pdb.append('_temp.{0}.{1}.pdb'.format(key, idx))
 
       if not os.path.isfile('{0}.{1}.pdb'.format(self.pref, key)):
-## Schrodinger 2020.4 drops -i/o<format> & recognizes from file extension
-        os.system('$SCHRODINGER/utilities/structconvert {0}.maegz _temp.{1}.{2}.pdb'.format(name, key, idx))
+        os.system('$SCHRODINGER/utilities/structconvert -imae {0}.maegz -opdb _temp.{1}.{2}.pdb'.format(name, key, idx))
 
     self.build_multi_pdb(tmp_pdb, key)
 
@@ -164,37 +162,37 @@ class Maegz2pdb( object ):
 ## Multiprocess for converting maegz results to pdb format
 m2p = Maegz2pdb(pref=inpref, group=LigGroups, names=Names)
 
-print('\n\033[33m  ## MAE-to-PDB Conversion ##\033[0m')
 mpi = multiprocessing.Pool()
-tmp = mpi.imap(m2p, keylist)
+tmp = [x for x in tqdm(mpi.imap(m2p, keylist), total=len(keylist))]
 mpi.close()
 mpi.join()
 
+## correspond the order of result in .csv list to input molcules
+pml = open('_temp.pml', 'w')
+for key in keylist:
+#  m2p(key)   # serial process, use when mulitprocess fails
+
+  pml.write('load {0}.{1}.pdb.bz2, {2}.{1}\n'.format(inpref, key,
+                                                     Names[int(key)-1]))
+  pml.write('distance hb.{0}, {0}.{1} and poly, {0}.{1} and org, mode=2\n'.format(Names[int(key)-1], key))
+
+
 ##########################################################################
 ## write out settings to pml file for pymol session generation
-print('\n\033[33m  ## Generating PyMOL session ##\033[0m')
-with open('_temp.pml', 'w') as pml:
-
-  ## correspond the order of result in .csv list to input molcules
-  for key in keylist:
-#    m2p(key)   # serial process, use when mulitprocess fails
-    pml.write('load {0}.{1}.pdb.bz2, {2}.{1}\n'.format(inpref, key, Names[int(key)-1]))
-    pml.write('distance hb.{0}, {0}.{1} and poly, {0}.{1} and org, mode=2\n'.format(Names[int(key)-1], key))
-
-  pml.write('show cartoon\n')
-  pml.write('hide lines\nhide labels\nset valence\n')
-  pml.write('show sticks, org\nshow lines, org\n')
-  pml.write('show lines, byres poly within 6 of org\n')
-  pml.write('hide (h. and (e. c extend 1))\n')  #hide nonpolar hydrogens
-  pml.write('set light_count, 1\nset ray_trace_mode, 1\n')
-  pml.write('set ray_trace_gain, .008\nset ray_trace_color, black\n')
-  pml.write('set opaque_background, 0\nutil.cbaw poly\n')
-  pml.write('util.cbas org\n')
-  pml.write('center org\n')
-  pml.write('zoom org\n')
-  pml.write('set pse_export_version, 1.70\n')
-  pml.write('save {0}.pse\n'.format(inpref))
-  pml.close()
+pml.write('show cartoon\n')
+pml.write('hide lines\nhide labels\nset valence\n')
+pml.write('show sticks, org\nshow lines, org\n')
+pml.write('show lines, byres poly within 6 of org\n')
+pml.write('hide (h. and (e. c extend 1))\n')  #hide nonpolar hydrogens
+pml.write('set light_count, 1\nset ray_trace_mode, 1\n')
+pml.write('set ray_trace_gain, .008\nset ray_trace_color, black\n')
+pml.write('set opaque_background, 0\nutil.cbaw poly\n')
+pml.write('util.cbas org\n')
+pml.write('center org\n')
+pml.write('zoom org\n')
+pml.write('set pse_export_version, 1.70\n')
+pml.write('save {0}.pse\n'.format(inpref))
+pml.close()
 os.system('pymol -c _temp.pml')
 
 ##########################################################################
