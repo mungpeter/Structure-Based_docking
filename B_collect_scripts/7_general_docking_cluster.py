@@ -323,6 +323,8 @@ def GenPyMOLClust( Mol_List, output_name, ref_pdb, Dock_Files ):
   pymol_pml.write("create ref_lig, "+ref_name+" and org and not resn NMA+ACE\n")
   pymol_pml.write("show lines, byres poly within 5 of ref_lig\n")
   pymol_pml.write("hide sticks, "+ref_name+" and org\n")
+  pymol_pml.write('distance ref_hb, ref_lig, '+ref_name+' and poly, mode=2\n')
+  pymol_pml.write('color cyan, ref_hb\n')
 
   ## load the unclustered original data
   for dock_file in Dock_Files:

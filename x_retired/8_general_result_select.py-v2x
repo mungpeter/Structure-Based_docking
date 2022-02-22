@@ -99,10 +99,6 @@ def RDkitRead( in_file, removeHs=True, add_Hs=False ):
     rdpd.AddMoleculeColumnToFrame(df, smilesCol='smiles', molCol='mol')
     df['smiles'] = df.mol.apply(Chem.MolToSmiles)
 
-  ## Add Murcko scaffolds
-  rdpd.AddMurckoToFrame(df, molCol='mol', MurckoCol='Hetero_Murcko',Generic=False)
-  rdpd.AddMurckoToFrame(df, molCol='mol', MurckoCol='Generic_Murcko',Generic=True)
-
   print('## Number of MOL read from {}: {}\n'.format(in_file,len(df.smiles)))
   return df
 
@@ -154,8 +150,7 @@ if __name__ == '__main__':
 #
 #  v1   20.09.21
 #  v2   21.11.29  add .xz compression capability
-#  v3   21.12.24  add Murcko scaffold to molecules
-  
+#  
 #  *New Version based on RDkit PandasTools*
 #
 #  Extract and sort the selected molecules by ranking/score
