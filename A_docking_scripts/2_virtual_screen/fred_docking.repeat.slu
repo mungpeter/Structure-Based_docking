@@ -1,0 +1,67 @@
+#!/bin/tcsh 
+
+#SBATCH -o FOLDER.NUM.out
+#SBATCH -e FOLDER.NUM.err
+#SBATCH -J FOLDER.NUM
+
+#SBATCH -p defq		# defq; himem; gpu
+#SBATCH --qos=medium	# veryshort=10m;short=2h;medium=1d;long=3d;verylong=14d
+#SBATCH -t 6:00:00          # Wall clock limit for job
+#SBATCH -n 12              # Number of CPU cores required
+##SBATCH --ntasks-per-node=12        # Run [ptile] number of MPI task per node
+
+
+## For Rosalind Cluster Use
+ml openeye
+
+##############################################################################
+## Openeye 
+#setenv OE_DIR /hpc/users/ungm/openeye
+#setenv OE_LICENSE $OE_DIR/oe_license.txt
+#setenv OE_ARCH redhat-RHEL6-x64
+#set path = ( $path $OE_DIR/bin )
+
+
+set work  = "/gstore/home/ungm/4_tmem175/2_dock/FOLDER"	# Work Directory
+set local = "/gstore/scratch/u/ungm/4_tmem175/FOLDER"	# Scratch work dir
+set lib   = "/gne/data/smdd/databases/mosaic/vs_database/z_pH45"
+#set lib   = "/gne/data/smdd/databases/GNE_HTS/REMP/vs_database/z_pH45"
+#set lib   = "/gne/data/smdd/databases/roche_rcd_vs/z_pH4.5"	# Ligand Directory
+#set lib   = /sc/hydra/projects/schlea02a/8_lib/zinc_lead13/openeye
+
+set prot  = PROT
+set name1 = `basename $prot .oeb.gz`
+
+set dbase = LIG
+set name2 = `basename $dbase .oeb.gz`
+
+set hit   = HIT		# Hit return size
+set pref  = $name1.$name2	# Prefix for result files
+set dock  = $name1.$name2.fred_docked.sdf
+set score = $name1.$name2.fred_docked.txt
+set cpu   = '12'
+
+
+#######################################################################
+if (! -e $local) then
+  mkdir $local
+endif
+cd $local
+
+# timeout 4h \
+#  oempirun -np $cpu fred   \   # this is only in older version
+if ( ! -e $dock.bz2 ) then
+  fred -mpi_np $cpu        \
+    -receptor $work/$prot  \
+    -dbase $lib/$dbase     \
+    -hitlist_size $hit     \
+    -prefix $pref 	        \
+    -docked_molecule_file $dock \
+    -score_file $score 
+
+  bzip2 $score $dock
+else
+  echo "already exists"
+endif
+
+exit
