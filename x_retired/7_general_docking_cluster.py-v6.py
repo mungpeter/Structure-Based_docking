@@ -4,7 +4,7 @@
 ##
 ##	Peter M.U. Ung @ MSSM
 ##
-##  v1.0  - 13.11.21
+##	v1.0	- 13.11.21
 ##  v2.0  - 14.11.06 - corrected a bug that generate 1 fewer ligand
 ##                     in each multi-ligand cluster. Now generate a
 ##                     SDF file with 'cluster tag'.
@@ -16,7 +16,6 @@
 ##                      go around a bug with python3 rdkit
 ##  v5.0  - 20.12.05   setting if generate image/pdf file
 ##  v6.0  - 21.11.29   add .xz compression capability
-##  v7.0  - 22.08.09   pi-pi/cation interaction; update for py3
 ##
 ##	Purpose: Summerize docking result with Chemical similarity, Rank
 ##		 the results by clusters and the first set of docking inputs
@@ -318,20 +317,20 @@ def GenPyMOLClust( Mol_List, output_name, ref_pdb, Dock_Files ):
   m_out     = Chem.SDWriter(output_name+'.sdf')
 
   ref_name = ref_pdb.split('/')[-1].split('.pdb')[0]
-  pymol_pml.write('set cartoon_oval_length, .8\nset cartoon_oval_width, 0.2\nset cartoon_rect_length, 0.8\nset cartoon_rect_width, 0.2\nset_bond stick_radius, .13, poly\nset dash_gap, 0.3\n')
   pymol_pml.write("load "+ref_pdb+", "+ref_name+"\nshow cartoon, poly\nhide lines\ncolor white, poly\ncolor cyan, org\nshow sticks, org and not resn NMA+ACE\n")
 
   pymol_pml.write("set_bond stick_radius, .15, "+ref_name+" and org\n")
   pymol_pml.write("create ref_lig, "+ref_name+" and org and not resn NMA+ACE\n")
   pymol_pml.write("show lines, byres poly within 5 of ref_lig\n")
   pymol_pml.write("hide sticks, "+ref_name+" and org\n")
+  pymol_pml.write('distance ref_hb, ref_lig, '+ref_name+' and poly, mode=2\n')
+  pymol_pml.write('color cyan, ref_hb\n')
 
   ## load the unclustered original data
   for dock_file in Dock_Files:
     dock_name = dock_file.split('/')[-1].split('.sdf')[0]
     pymol_pml.write("load {0}, {1}\n".format(dock_file, dock_name))
     pymol_pml.write("dist HB.all, poly, {0}, mode=2\n".format(dock_name))
-    pymol_pml.write('dist pi.all, poly, {0}, mode=5\n'.format(dock_name))
 
   ## write out each cluster as temp sdf to load into pymol
   for idx, Mols in enumerate(Mol_List):
@@ -342,7 +341,6 @@ def GenPyMOLClust( Mol_List, output_name, ref_pdb, Dock_Files ):
     pse_sdf.close()
     pymol_pml.write("load _TEMP.clust.{0}.sdf, clust.{0}\n".format(idx+1))
     pymol_pml.write("dist HB.{0}, poly, clust.{0}, mode=2\n".format(idx+1))
-    pymol_pml.write("dist pi.{0}, poly, clust.{0}, mode=5\n".format(idx+1))
 
   pymol_pml.write("show sticks, org\nset valence\n")
   pymol_pml.write("hide (h. and (e. c extend 1))\n")
@@ -352,7 +350,7 @@ def GenPyMOLClust( Mol_List, output_name, ref_pdb, Dock_Files ):
   pymol_pml.write("set mesh_width, 0.1\n")
   pymol_pml.write("set light_count, 1\nset ray_opaque_background, off\n")
   pymol_pml.write("color white, poly\ncolor cyan, "+ref_name+" and org\n")
-  pymol_pml.write("color cyan, ref_lig\ncolor cyan, pi.*\nutil.cnc\n")
+  pymol_pml.write("color cyan, ref_lig\nutil.cnc\n")
   pymol_pml.write("disable clust.*\ndisable HB.*\ndisable ref_lig\nenable HB.all")
   pymol_pml.write("set ray_trace_mode, 1\nset ray_trace_gain, 0.008\n")
   pymol_pml.write("set ray_trace_color, black\n")
