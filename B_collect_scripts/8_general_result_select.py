@@ -26,9 +26,10 @@ def main():
 
 ###############
   ## Read in the list of selected ligand ID 
-  n_df     = pd.read_csv(args.mol_id, delimiter='\s+', header=None, comment='#').dropna()
+  n_df     = pd.read_csv(args.mol_id, delimiter='\s+',header=None,comment='#',skip_blank_lines=True)
   keywords = n_df.loc[:, 0].to_list()
   print('\n > Number of items in <{}>: {}\n'.format( args.mol_id, len(keywords) ))
+  print('first 5: ')
   print(keywords[:5])
 
   ## Extract the selected ligands from the supplied SDFs
@@ -38,7 +39,7 @@ def main():
     print(len(df))
     Items = df['ID'].apply(CheckID)
     df['Name']  = list(zip(*Items))[0]
-    df['Rank']  = list(zip(*Items))[1]
+    df['Rank']  = list(map(int, list(zip(*Items))[1]))
     df['Score'] = list(zip(*Items))[2]
     df['Soft']  = list(zip(*Items))[3]
     mol_sele.append( df[ df[args.id_tag].isin(keywords) ] )
@@ -57,9 +58,13 @@ def main():
 
   ## Sort data, if needed
   if args.sort_tag:
-    all_df.sort_values(by=[args.sort_tag], ascending=False, inplace=True)
+    if re.search('Rank|Name', args.sort_tag, re.IGNORECASE):  asc = True
+    else: asc = False
+    all_df.sort_values(by=[args.sort_tag], ascending=asc, inplace=True)
 
   rdpd.WriteSDF(all_df, args.outpref+'.sdf.gz', molColName='mol', properties=list(all_df.columns))
+  print('\033[31m  Info: \033[35m{0}\033[31m MOL output\033[0m'.format(len(all_df)))
+
 
 ##########################################################################
 ##
