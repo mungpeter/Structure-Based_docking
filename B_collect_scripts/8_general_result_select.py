@@ -2,8 +2,8 @@
 
 import sys
 usage = '''\n\n  ## Usage: {0}
-      -list < >  [ List of Mol ID to be extracted ]   
-      -file <+>  [ SDF file(s): sdf ]   * gzip|xz|bzip2 accepted
+      -id   < >  [ List of Mol ID to be extracted ]   
+      -sdf  <+>  [ SDF file(s): sdf ]   * gzip|xz|bzip2 accepted
       -pref < >  [ Output Prefix ]\n
   Optional:
       -tag  < >  [ SDF tag of MOL identifier (Def: 'Name') ]
@@ -27,9 +27,10 @@ def main():
 ###############
   ## Read in the list of selected ligand ID 
   n_df     = pd.read_csv(args.mol_id, delimiter='\s+',header=None,comment='#',skip_blank_lines=True)
-  keywords = n_df.loc[:, 0].to_list()
+  
+  keywords = n_df.loc[:, 0].astype(str).to_list()  # ZINC data uses numeric molname, enforce string
   print('\n > Number of items in <{}>: {}\n'.format( args.mol_id, len(keywords) ))
-  print('first 5: ')
+  print('first 5 items: ')
   print(keywords[:5])
 
   ## Extract the selected ligands from the supplied SDFs
@@ -37,7 +38,7 @@ def main():
   for infile in args.infiles:
     df = RDkitRead(infile, removeHs=False)
     print(len(df))
-    Items = df['ID'].apply(CheckID)
+    Items = df['Title'].apply(CheckTitle)
     df['Name']  = list(zip(*Items))[0]
     df['Rank']  = list(map(int, list(zip(*Items))[1]))
     df['Score'] = list(zip(*Items))[2]
@@ -46,7 +47,7 @@ def main():
     del df
     gc.collect()
 
-#  all_df = pd.concat(mol_sele).set_index('ID').reindex(keywords).reset_index()
+#  all_df = pd.concat(mol_sele).set_index('Title').reindex(keywords).reset_index()
   all_df = pd.concat(mol_sele).reset_index(drop=True)
   print(all_df[:5])
   found_id  = all_df[args.id_tag].to_list()
@@ -67,40 +68,43 @@ def main():
 
 
 ##########################################################################
-##
-def CheckID( id ):
-  if re.search(r'::', id):
-    name, rank, score, soft = id.split('::')
-    return [name, rank, score, soft]
-  elif re.search(r' ', id):
-    return [id.split()[0], 0, 0.0, '']
+## Check if 'Title' of molblock is modified to contain addition data
+def CheckTitle( title ):
+  if re.search(r'::', title):
+    name, rank, score, software = title.split('::')
+    return [name, rank, score, software]
+  elif re.search(r' ', title):
+    return [title.split()[0], 0, 0.0, '']
   else:
-    return [id, 0, 0.0, '']
+    return [title, 0, 0.0, '']
 
 ##########################################################################
 ## Read in SMILES or SDF input and add Hs to it
-def RDkitRead( in_file, removeHs=True, add_Hs=False ):
+def RDkitRead( in_file, removeHs=False, add_Hs=False ):
   ## Read in SDF file; can choose to add hydrogens or not
   if re.search(r'.sdf', in_file):
     print(' # Reading SDF')
     df = rdpd.LoadSDF(  file_handle(in_file), removeHs=removeHs,
-                        idName='ID', molColName='mol' )
+                        idName='Title', molColName='mol' )
     df['smiles'] = df.mol.apply(lambda m:Chem.MolToSmiles(Chem.RemoveHs(m)))
     if add_Hs:
       df['mol'] = df.mol.apply(Chem.AddHs)
+
+    ## ZINC library molname can be numeric, issue with pandas/numpy handling
+    df['ID'] = df['ID'].astype(str)
 
   ## Read in SMILES file, check if there is a header "smiles"
   if re.search(r'.smi', in_file):
     print('# Reading SMI')
     with file_handle(in_file) as fi:
       if re.search('smi', str(fi.readline()), re.IGNORECASE):
-        print('# Smiles input has Header #\n')
+        print('# Smiles input has Title #\n')
         df = pd.read_csv(in_file, sep='\s+', comment='#').dropna()
-        df.columns = ['smiles','ID']
+        df.columns = ['smiles','Title']
       else:
-        print('# Smiles input has NO Header #\n')
+        print('# Smiles input has NO Title #\n')
         df = pd.read_csv(in_file, header=None, sep='\s+', comment='#').dropna()
-        df.columns = ['smiles','ID']
+        df.columns = ['smiles','Title']
     rdpd.AddMoleculeColumnToFrame(df, smilesCol='smiles', molCol='mol')
     df['smiles'] = df.mol.apply(Chem.MolToSmiles)
 
@@ -133,9 +137,9 @@ def file_handle(file_name):
 def UserInput():
   p = ArgumentParser(description='Command Line Arguments')
 
-  p.add_argument('-list', dest='mol_id', required=True,
+  p.add_argument('-id', dest='mol_id', required=True,
                   help='List of Mol_ID to be extracted')
-  p.add_argument('-file', dest='infiles', required=True, nargs='+',
+  p.add_argument('-sdf', dest='infiles', required=True, nargs='+',
                   help='SDF File(s) * gzip,xz,bzip2 accepted')
   p.add_argument('-pref', dest='outpref', required=True,
                   help='Output prefix')
@@ -160,7 +164,8 @@ if __name__ == '__main__':
 #  v1   20.09.21
 #  v2   21.11.29  add .xz compression capability
 #  v3   21.12.24  add Murcko scaffold to molecules
-  
+#  v4   22.09.06  handle ZINC numeric molname; rename Title name from 'ID' to 'Title'
+#
 #  *New Version based on RDkit PandasTools*
 #
 #  Extract and sort the selected molecules by ranking/score
