@@ -223,9 +223,9 @@ def WriteSDFDataSelect( Top_sdf, arg_pat, top_name, name, score, switch, grid ):
     Select = []
     for mol in zip(*match):
       if True in set(mol):
-        Exlcude.append(True)
+        Select.append(True)
       else:
-        Exclude.append(False)
+        Select.append(False)
     Top_sdf['match'] = Select
 
     if switch == 'include':
@@ -235,7 +235,7 @@ def WriteSDFDataSelect( Top_sdf, arg_pat, top_name, name, score, switch, grid ):
 
     rdpd.WriteSDF(sel_sdf, '{0}.{1}.sdf.gz'.format(top_name,switch), idName='NewID', properties=list(sel_sdf.columns))
     sel_sdf.to_csv('{0}.{1}.txt.gz'.format(top_name,switch), columns=[name, 'index', score], sep='\t')
-    if grid: grid_print(top_name, sel_df, 'sdf')
+    if grid: grid_print(top_name, sel_sdf, 'sdf')
 
 
 #######################################################################

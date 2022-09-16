@@ -15,11 +15,11 @@
 
 
 ../../B_collect_scripts/7_general_docking_cluster.py          \
-  single_VS.summary.sch_top1k.sdf           \
-  0.4                                       \
-  single_VS.summary.sch_top1k.clust-04      \
-  ../recpt.pdb.bz2                          \
-  -ec
+  -in single_VS.summary.sch_top1k.sdf            \
+  -cut 0.4                                       \
+  -op single_VS.summary.sch_top1k.clust-04       \
+  -pdb ../recpt.pdb.bz2                          \
+  -fp 0
 
 bzip2 *sdf *txt *pse
 

@@ -17,7 +17,6 @@
 ##  v5.0  - 20.12.05   setting if generate image/pdf file
 ##  v6.0  - 21.11.29   add .xz compression capability
 ##  v7.0  - 22.08.09   pi-pi/cation interaction; update for py3
-##  v8.0  - 22.09.15   add argparse
 ##
 ##	Purpose: Summerize docking result with Chemical similarity, Rank
 ##		 the results by clusters and the first set of docking inputs
@@ -62,22 +61,25 @@
 
 import os,sys
 msg = """\n## Usage: x.py 
-      -in  <+>  [ Docking inputs: sdf ] gz,bz2,xz  - accept multiple files "*.sdf,x.sdf"
-      -op  < >  [ output prefix ]
+      [ Docking inputs: sdf ] gz,bz2,xz  - accept multiple files "*.sdf,x.sdf"
+      [ Tanimoto Cutoff: float ]
+      [ output prefix ]
+      [ receptor structure: pdb ]
   Optional:              
-      -cut < >  [ Tanimoto Cutoff: float (def: 0.4) ]
-      -fp  < >  [ Fingerprint: ECFP_4: 0 | Daylight: 1 | MACCS 166-bit: 2 (def: 0) ]
-      -pdb < >  [ To generate PyMOL session, add receptor structure: pdb ]
-      -top < >  [ no. of top molecule for clustering : int ]
-      -sort < > [ Sort molecules by <SDF tag> ]
-      -pdf      [ Generate mol cluster pdf ]
+      [ -nopdf    Do not generate mol cluster pdf ]
+      [ -nopymol  Do not generate PyMOL session ]
+      [ -top=<no. of mol>: int ]
+      [ -sortby=<SDF tag> ]
+      [ -dl    DayLight Fingerprint      
+        -ec    ECFP_4 Fingerprint (Default)
+        -ms    MACCS 166-bit Key ]
 
     # and output a list of molecule png (temp.$name.png)
       [png of clustered ligands]
 
-    e.g.>  x.py -in  vina.sdf fred.sdf ehits.sdf 
-                -cut 0.4 -op output.clust-04 -pdb receptor.pdb -fp 0\n\n"""
-if len(sys.argv) < 5: sys.exit(msg)
+    e.g.>  x.py vina.sdf,fred.sdf,ehits.sdf 
+                0.4 output.clust-04 receptor.pdb -dl\n\n"""
+if len(sys.argv) < 5 or len(sys.argv) > 10: sys.exit(msg)
 
 import re,gzip,bz2,lzma,glob
 #import PIL.Image
@@ -95,35 +97,55 @@ from rdkit.Chem.Draw import rdMolDraw2D
 from rdkit.Chem.Draw import DrawingOptions
 from rdkit.Chem.rdmolops import AssignStereochemistryFrom3D
 
-from argparse import ArgumentParser
 from rdkit_grid_print import grid_print
 from tqdm import tqdm
 
- 
+fingerprint = '-ec'
+top_mol = None
+img_pdf = True
+gen_pym = True
+for argv in sys.argv:
+  if re.search(r'-nopdf', argv):
+    img_pdf = False
+  if re.search(r'-nopymol', argv):
+    gen_pym = False
+  if re.search(r'-top=', argv):
+    top_mol = int(argv.split('top=')[1])
+  if re.search(r'-sortby=', argv):
+    sortby  = argv.split('-sortby=')[1]
+  if re.search(r'-ec', argv):
+    fingerprint = 'ECFP'
+  if re.search(r'-ms', argv):
+    fingerprint = 'MACCS'
+  if re.search(r'-dl', argv):
+    fingerprint = 'Daylight'
+  
 ##########################################################################
 ## Sort and compare to eliminate duplicate
 ## For duplicates, the Type, Rank and Score are combined
-def main( ):
-
-  args = UserInput()
+def main( filenames, CUT, OUTPUT_PREFIX, REF_PDB ):
 
   ## Get the docking inputs
-  Dock_Files = [ glob.glob(name)[0] for name in args.filenames ]
+  Dock_Files = [ glob.glob(name)[0] for name in filenames.split(',') ]
 
-  All_Hit, Multi_Hit = SortDockFiles(Dock_Files, args.top_mol)
+  All_Hit,Multi_Hit = SortDockFiles(Dock_Files, top_mol)
 
   ## Make clusters of all imported results
-  output_name = args.out_pref
-  Mol_Cluster = Do_Fp(All_Hit, float(args.CUT), int(args.fingerprint))
+  output_name = OUTPUT_PREFIX
+  Mol_Cluster = Do_Fp(All_Hit, CUT, output_name, fingerprint)
+#  if gen_pym:
+#    GenPyMOLClust(Mol_Cluster, output_name, REF_PDB, Dock_Files)
+#  if img_pdf:
+#    GenClustTable(Mol_Cluster, output_name, column=5)
 
-  ## Show clusters of imported results that have at least 1 overlap from multiple files; rarely used
+  ## Show clusters of imported results that have at least 1 overlap
   if len(Multi_Hit) > 0:
-    output_name = args.out_pref+'.multi-hit'
-    Mol_Cluster = Do_Fp(Multi_Hit, float(args.CUT), int(args.fingerprint))
+    output_name = OUTPUT_PREFIX+'.multi-hit'
+    Mol_Cluster = Do_Fp(Multi_Hit, CUT, output_name, fingerprint)
 
-  if args.pmol_pdb:
-    GenPyMOLClust(Mol_Cluster, output_name, args.pmol_pdb, Dock_Files)
-  if args.pdf:
+  if gen_pym:
+    GenPyMOLClust(Mol_Cluster, output_name, REF_PDB, Dock_Files)
+  if img_pdf:
     GenClustTable(Mol_Cluster, output_name, column=5)
 
 
@@ -134,11 +156,13 @@ def SortDockFiles( Dock_Files, top_mol ):
 
   for dock_file in Dock_Files:
     dock = file_handle(dock_file)
-    Dock = [ x for x in (Chem.ForwardSDMolSupplier(dock, removeHs=False))
-              if x is not None ]
-    if top_mol:
-      temp = Dock[0:int(top_mol)]
-      Dock = temp
+    if top_mol is None:
+      Dock = [ x for x in (Chem.ForwardSDMolSupplier(dock, removeHs=False))
+                if x is not None ]
+    else:
+      Dock = [ x for x in Chem.ForwardSDMolSupplier(dock, removeHs=False)
+                if x is not None ][0:top_mol]
+
     print(" --> Read {0}: {1}".format(dock_file,len(Dock)))
 
     Temp = {}   # Hash Table of current $dock_file 
@@ -163,11 +187,10 @@ def SortDockFiles( Dock_Files, top_mol ):
     ## Unique molecules are added to the Master Hash Table as new entries
 #    new_name = hash_key+'::'+str(Hash_Info[1]+'/')+'::'+str(Hash_Info[2])+'::'+str(Hash_Info[3])
 #    hash_m.SetProp('_Name', new_nm)
-    for temp_key in Temp.keys():
-      Mol_Hash[temp_key] = Temp[temp_key]
+    for temp_key in Temp.keys(): Mol_Hash[temp_key] = Temp[temp_key]
     print("  ## Added "+str(len(Temp))+" Unique Entries from "+dock_file+" ##")
 
-## Convert Hash back into List. Isolate entries with multiple top hits in separate input files
+## Convert Hash back into List. Isolate entries with multiple top hits
   All_Hit   = []
   Multi_Hit = []
   Singl_Hit = []
@@ -179,8 +202,8 @@ def SortDockFiles( Dock_Files, top_mol ):
     else:
       Singl_Hit.append(m)
   print("  ### Unique Entries Found: "+str(len(Multi_Hit)+len(Singl_Hit))+" ###\n")
-  print("  ### "+str(len(Multi_Hit))+" ligands with < 1+ > occurance in input ###")
-  print("  ### "+str(len(Singl_Hit))+" ligands with < 1  > occurance in input ###\n")
+  print("  ### "+str(len(Multi_Hit))+" Entries have < 1+ > occurances ###")
+  print("  ### "+str(len(Singl_Hit))+" Entries have < 1  > occurance  ###\n")
 
   return All_Hit, Multi_Hit
 
@@ -188,19 +211,19 @@ def SortDockFiles( Dock_Files, top_mol ):
 ########################################################################
 ########################################################################
 
-def Do_Fp( Mol, cutoff, fingerprint ):
-  if fingerprint == 0:
-    #### Morgan (ECFP-like) fingerprint ####
-    print('  -- Calculating with Morgan (ECFP_4) Fingerprint --')
-    Fp = [AllChem.GetMorganFingerprintAsBitVect(x, 2, 2048) for x in Mol]
-
-  if fingerprint == 1:
+def Do_Fp( Mol, cutoff, output_name, fingerprint ):
+  if fingerprint == 'Daylight':
     #### Daylight-like fingerprint ####
     from rdkit.Chem.Fingerprints import FingerprintMols
     print('  -- Calculating with DayLight-like Fingerprint --')
     Fp = [FingerprintMols.FingerprintMol(x) for x in Mol]
 
-  if fingerprint == 2:
+  if fingerprint == 'ECFP':
+    #### Morgan (ECFP-like) fingerprint ####
+    print('  -- Calculating with Morgan (ECFP_4) Fingerprint --')
+    Fp = [AllChem.GetMorganFingerprintAsBitVect(x, 2, 2048) for x in Mol]
+
+  if fingerprint == 'MACCS':
     #### MACCS 166-bit keys ####
     from rdkit.Chem import MACCSkeys
     print('  -- Calculating with MACCS 166-bit Keys --')
@@ -428,32 +451,7 @@ def ClusterFps(Fp, cutoff):
 
 
 ########################################################################
-def UserInput():
-  p = ArgumentParser(description='Command Line Arguments')
 
-  p.add_argument('-in', dest='filenames', required=True, nargs='+',
-                  help='Docking SDF inputs: gz,bz2,xz  - accept multiple files "*.sdf,x.sdf" ')
-  p.add_argument('-op', dest='out_ref', required=True,
-                  help='Prefix of Output')
-
-  p.add_argument('-fp', dest='fingerprint', required=False, default=0,
-                  help='Fingerprint: ECFP_4: 0 | Daylight: 1 | MACCS 166-bit: 2 (def: 0)')
-  p.add_argument('-cut', dest='CUT', required=False, default=0.4,
-                  help='Tanimoto Cutoff: float (def: 0.4)')
-  p.add_argument('-top', dest='top_mol', required=False, default=False,
-                  help='no. of top molecule for clustering : int')
-
-  p.add_argument('-pdb', dest='pmol_pdb', required=False, default=False,
-                  help='To generate PyMOL session, add receptor structure: pdb')
-  p.add_argument('-pdf', dest='pdf', required=False, action='store_true',
-                  help='Generate mol cluster pdf')
-  p.add_argument('-sort', dest='sort', required=False, default=False,
-                  help='Sort molecules by <SDF tag>')
-
-  args = p.parse_args()
-  return args
-
-
-############################################################################
 if __name__ == '__main__':
-  main(  )
+  main( sys.argv[1], 1-float(sys.argv[2]), sys.argv[3], 
+        sys.argv[4] )
