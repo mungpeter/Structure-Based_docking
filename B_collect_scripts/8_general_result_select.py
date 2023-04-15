@@ -15,6 +15,7 @@ import bz2,gzip,lzma
 import pandas as pd
 
 from rdkit import Chem
+from rdkit.Chem import MolStandardize
 from rdkit.Chem import PandasTools as rdpd
 
 from argparse import ArgumentParser
@@ -26,36 +27,50 @@ def main():
 
 ###############
   ## Read in the list of selected ligand ID 
-  n_df     = pd.read_csv(args.mol_id, delimiter='\s+',header=None,comment='#',skip_blank_lines=True)
-  
-  keywords = n_df.loc[:, 0].astype(str).to_list()  # ZINC data uses numeric molname, enforce string
-  print('\n > Number of items in <{}>: {}\n'.format( args.mol_id, len(keywords) ))
-  print('first 5 items: ')
-  print(keywords[:5])
+  n_df = pd.read_csv(args.mol_id,delimiter='\s+',header=None,comment='#',skip_blank_lines=True)
+
+  ## ZINC data uses numeric molname, enforce string
+  mol_id = n_df.loc[:, 0].astype(str).to_list()
+
+  ## Check how many IDs are unique/duplicate
+  uniq_id = list(set(mol_id))
+  dupl_id = duplicate_check(mol_id)
+
+  print('\n\033[32m > Number of items in <{0}>:\033[0m {1}'.format( args.mol_id, len(mol_id) ))
+  if dupl_id:
+    print('\033[32m > Unique IDs:\033[0m {0}'.format(len(uniq_id)))
+    print('\033[32m > Duplicates:\033[0m')
+    print(dupl_id)
+  print('\n\033[32m > First 5 items: \033[0m')
+  print(uniq_id[:5])
 
   ## Extract the selected ligands from the supplied SDFs
   mol_sele = []
   for infile in args.infiles:
     df = RDkitRead(infile, removeHs=False)
+#    df.mol.apply(lambda x: Chem.AddHs(x,addCoords=True)).apply(MolStandardize.rdMolStandardize.Normalize) # temp fix for mol without Hs
+
     print(len(df))
     Items = df['Title'].apply(CheckTitle)
     df['Name']  = list(zip(*Items))[0]
     df['Rank']  = list(map(int, list(zip(*Items))[1]))
     df['Score'] = list(zip(*Items))[2]
     df['Soft']  = list(zip(*Items))[3]
-    mol_sele.append( df[ df[args.id_tag].isin(keywords) ] )
+    mol_sele.append( df[ df[args.id_tag].isin(uniq_id) ] )
     del df
     gc.collect()
 
-#  all_df = pd.concat(mol_sele).set_index('Title').reindex(keywords).reset_index()
+#  all_df = pd.concat(mol_sele).set_index('Title').reindex(uniq_id).reset_index()
   all_df = pd.concat(mol_sele).reset_index(drop=True)
   print(all_df[:5])
   found_id  = all_df[args.id_tag].to_list()
-  missed_id = [x for x in keywords if x not in set(found_id)]
+  missed_id = [x for x in uniq_id if x not in set(found_id)]
 
-  if missed_id is False:
-    print('\033[31m  Info: \033[35m{0}\033[31m MOL cannot be found:\033[0m'.format(len(missed_id)))
+  if missed_id:
+    print('\033[31m  Error: \033[31m{0}\033[31m MOL cannot be found, double check the IDs:\033[0m'.format(len(missed_id)))
     print(missed_id)
+  else:
+    print('\033[32m  Info: All MOL in hitlist is accounted for in SDF file\033[0m')
 
   ## Sort data, if needed
   if args.sort_tag:
@@ -64,8 +79,23 @@ def main():
     all_df.sort_values(by=[args.sort_tag], ascending=asc, inplace=True)
 
   rdpd.WriteSDF(all_df, args.outpref+'.sdf.gz', molColName='mol', properties=list(all_df.columns))
-  print('\033[31m  Info: \033[35m{0}\033[31m MOL output\033[0m'.format(len(all_df)))
 
+  print('\033[32m  Info: \033[0m{0}\033[32m MOL output\033[0m'.format(len(all_df)))
+
+
+##########################################################################
+## Check if the list has duplicated mol_id
+def duplicate_check( inp ):
+  seen = set()
+  uniq = []
+  dupl = []
+  for x in inp:
+    if x not in seen:
+      uniq.append(x)
+      seen.add(x)
+    else:
+      dupl.append(x)
+  return dupl
 
 ##########################################################################
 ## Check if 'Title' of molblock is modified to contain addition data
@@ -83,15 +113,15 @@ def CheckTitle( title ):
 def RDkitRead( in_file, removeHs=False, add_Hs=False ):
   ## Read in SDF file; can choose to add hydrogens or not
   if re.search(r'.sdf', in_file):
-    print(' # Reading SDF')
+    print('\n\033[31m # Reading SDF #\033[0m')
     df = rdpd.LoadSDF(  file_handle(in_file), removeHs=removeHs,
                         idName='Title', molColName='mol' )
-    df['smiles'] = df.mol.apply(lambda m:Chem.MolToSmiles(Chem.RemoveHs(m)))
+#    df['smiles'] = df.mol.apply(lambda m:Chem.MolToSmiles(Chem.RemoveHs(m)))
     if add_Hs:
       df['mol'] = df.mol.apply(Chem.AddHs)
 
     ## ZINC library molname can be numeric, issue with pandas/numpy handling
-    df['ID'] = df['ID'].astype(str)
+    df['Title'] = df['Title'].astype(str)
 
   ## Read in SMILES file, check if there is a header "smiles"
   if re.search(r'.smi', in_file):
@@ -112,7 +142,7 @@ def RDkitRead( in_file, removeHs=False, add_Hs=False ):
   rdpd.AddMurckoToFrame(df, molCol='mol', MurckoCol='Hetero_Murcko',Generic=False)
   rdpd.AddMurckoToFrame(df, molCol='mol', MurckoCol='Generic_Murcko',Generic=True)
 
-  print('## Number of MOL read from {}: {}\n'.format(in_file,len(df.smiles)))
+  print('## Number of MOL read from {}: {}\n'.format(in_file,len(df)))
   return df
 
 #########################################################################
@@ -165,6 +195,7 @@ if __name__ == '__main__':
 #  v2   21.11.29  add .xz compression capability
 #  v3   21.12.24  add Murcko scaffold to molecules
 #  v4   22.09.06  handle ZINC numeric molname; rename Title name from 'ID' to 'Title'
+#  v5   23.04.12  check for missing molecule or duplicated input
 #
 #  *New Version based on RDkit PandasTools*
 #

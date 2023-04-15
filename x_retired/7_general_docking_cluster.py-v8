@@ -18,8 +18,6 @@
 ##  v6.0  - 21.11.29   add .xz compression capability
 ##  v7.0  - 22.08.09   pi-pi/cation interaction; update for py3
 ##  v8.0  - 22.09.15   add argparse
-##  v9.0  - 23.03.06   append score to title
-##  v10   - 23.04.12   use precalculated clusterIdx for clustering
 ##
 ##	Purpose: Summerize docking result with Chemical similarity, Rank
 ##		 the results by clusters and the first set of docking inputs
@@ -69,11 +67,9 @@ msg = """\n## Usage: x.py
   Optional:              
       -cut < >  [ Tanimoto Cutoff: float (def: 0.4) ]
       -fp  < >  [ Fingerprint: ECFP_4: 0 | Daylight: 1 | MACCS 166-bit: 2 (def: 0) ]
-                [ Override FP-based clustering if non-integer value (SDF Tag) is used ]
       -pdb < >  [ To generate PyMOL session, add receptor structure: pdb ]
       -top < >  [ no. of top molecule for clustering : int ]
-      -sort < > [ Sort input molecules by <tag> ]
-      -app  < > [ Append Score in <tag> to Mol Title ]
+      -sort < > [ Sort molecules by <SDF tag> ]
       -pdf      [ Generate mol cluster pdf ]
 
     # and output a list of molecule png (temp.$name.png)
@@ -93,6 +89,7 @@ from rdkit import Chem
 from rdkit import DataStructs
 from rdkit.Chem import Draw
 from rdkit.Chem import AllChem
+from rdkit.Chem import rdmolops
 from rdkit.ML.Cluster import Butina
 from rdkit.Chem.Draw import rdMolDraw2D
 from rdkit.Chem.Draw import DrawingOptions
@@ -102,7 +99,7 @@ from argparse import ArgumentParser
 from rdkit_grid_print import grid_print
 from tqdm import tqdm
 
-
+ 
 ##########################################################################
 ## Sort and compare to eliminate duplicate
 ## For duplicates, the Type, Rank and Score are combined
@@ -113,11 +110,11 @@ def main( ):
   ## Get the docking inputs
   Dock_Files = [ glob.glob(name)[0] for name in args.filenames ]
 
-  All_Hit, Multi_Hit = SortDockFiles(Dock_Files, args.top_mol, args.sort_tag)
+  All_Hit, Multi_Hit = SortDockFiles(Dock_Files, args.top_mol)
 
   ## Make clusters of all imported results
   output_name = args.out_pref
-  Mol_Cluster = FPClusterList(All_Hit, float(args.CUT), args.fingerprint )
+  Mol_Cluster = Do_Fp(All_Hit, float(args.CUT), int(args.fingerprint))
 
   ## Show clusters of imported results that have at least 1 overlap from multiple files; rarely used
 #  if len(Multi_Hit) > 0:
@@ -132,7 +129,7 @@ def main( ):
 
 
 ##########################################################################
-def SortDockFiles( Dock_Files, top_mol, sort_tag ):
+def SortDockFiles( Dock_Files, top_mol ):
   Mol_Hash = {}	# Hash Table of all available molecule info
 
   for dock_file in Dock_Files:
@@ -140,16 +137,9 @@ def SortDockFiles( Dock_Files, top_mol, sort_tag ):
     Dock = [ x for x in (Chem.ForwardSDMolSupplier(dock, removeHs=False))
               if x is not None ]
     if top_mol:
-      if sort_tag:
-        Temp = Dock
-        Dock = sorted(Temp, key=lambda m: m.GetProp(sort_tag))
       temp = Dock[0:int(top_mol)]
       Dock = temp
     print(" --> Read {0}: {1}".format(dock_file,len(Dock)))
-
-#    from rdkit.Chem import MolStandardize
-#    Dock2 = Dock  # temp fix for sdf input without explicit H
-#    Dock = [MolStandardize.rdMolStandardize.Normalize(Chem.AddHs(m,addCoords=True)) for m in Dock2]
 
     Temp = {}   # Hash Table of current $dock_file 
     for m in Dock: Temp[m.GetProp('_Name').split('::')[0]] = m
@@ -198,62 +188,42 @@ def SortDockFiles( Dock_Files, top_mol, sort_tag ):
 ########################################################################
 ########################################################################
 
-def FPClusterList( Mol, cutoff, fingerprint ):
+def Do_Fp( Mol, cutoff, fingerprint ):
+  if fingerprint == 0:
+    #### Morgan (ECFP-like) fingerprint ####
+    print('  -- Calculating with Morgan (ECFP_4) Fingerprint --')
+    Fp = [AllChem.GetMorganFingerprintAsBitVect(x, 2, 2048) for x in Mol]
 
-  if type(fingerprint) == int:
-    if int(fingerprint) == 0:
-      #### Morgan (ECFP-like) fingerprint ####
-      fp = 'ECPF_4'
-      print('  -- Calculating with Morgan (ECFP_4) Fingerprint --')
-      FP = [AllChem.GetMorganFingerprintAsBitVect(x, 2, 2048) for x in Mol]
+  if fingerprint == 1:
+    #### Daylight-like fingerprint ####
+    from rdkit.Chem.Fingerprints import FingerprintMols
+    print('  -- Calculating with DayLight-like Fingerprint --')
+    Fp = [FingerprintMols.FingerprintMol(x) for x in Mol]
 
-    if int(fingerprint) == 1:
-      #### Daylight-like fingerprint ####
-      fp = 'Daylight'
-      from rdkit.Chem.Fingerprints import FingerprintMols
-      print('  -- Calculating with DayLight-like Fingerprint --')
-      FP = [FingerprintMols.FingerprintMol(x) for x in Mol]
+  if fingerprint == 2:
+    #### MACCS 166-bit keys ####
+    from rdkit.Chem import MACCSkeys
+    print('  -- Calculating with MACCS 166-bit Keys --')
+    Fp = [MACCSkeys.GenMACCSKeys(x) for x in Mol]
 
-    if int(fingerprint) == 2:
-      #### MACCS 166-bit keys ####
-      fp = 'MACCS'
-      from rdkit.Chem import MACCSkeys
-      print('  -- Calculating with MACCS 166-bit Keys --')
-      FP = [MACCSkeys.GenMACCSKeys(x) for x in Mol]
+    # Cluster based on fingerprints 
+  Cluster_List = ClusterFps(Fp, cutoff)
 
-    # Cluster based on fingerprint
-    Cluster_List = ClusterFps(FP, cutoff)
-  else:
-    ## Use ClusterIdx tag in SDF for clustering
-    fp = fingerprint
-    Cluster_List = ConvertClusTag(Mol, fingerprint)
 
-#############
-  ## Use list_position_id stored in Cluster_List to build a List of mol clusters: 
-  ## Clusters = [[clust1], [clust2], [clust3], ...]
+  #####################################################################
+  ## Build a List of array of clusters Clusters = [[clust1], [clust2], [clust3], ...]
   M_Clusters = []
-  for cluster in Cluster_List:
-    if len(cluster) > 1:
+  for cluster, List in enumerate(Cluster_List):
+    if len(List) > 1:
       M_Temp = []
-      for clust_id in cluster:
+      for clust_id in List:
         M_Temp.append(Mol[clust_id])
       M_Clusters.append(M_Temp)
     else:
-      M_Clusters.append([Mol[cluster[0]]])
+      M_Clusters.append([Mol[List[0]]])
+  print("  ## No. of cluster: "+str(len(M_Clusters))+" for Tc = "+str(cutoff)+" ##\n")
 
-  if type(fingerprint) == int:
-    print("  ## No. of cluster by <{0}> at Tc={1}: {2}\n".format(fp, cutoff, len(M_Clusters)) )
-  else:
-    print("  ## No. of cluster by SDF Tag <{0}>: {1}\n".format(fp, len(M_Clusters)) )
-
-  Mol_List = RankClusters(M_Clusters, fp)
-  return Mol_List
-
-
-##########################################################################
-## Generate table of clustered molecules with ranking of cluster list based
-## on each cluster's averaged mol-docking ranking, and add some properties to each mol
-def RankClusters( M_Clusters, fingerprint ):
+  ## Generate table of clustered molecules
   Multi_list  = []		# List of all clusters
   Single_list = []	# Mol that are scored as a single cluster
 
@@ -307,27 +277,6 @@ def RankClusters( M_Clusters, fingerprint ):
 
 
 #####################################################################
-def ConvertClusTag( Mol, clus_tag ):
-
-  ## Sort the Mol list into hash by external cluster index
-  idxhash = {}
-  for m_idx, m in enumerate(Mol):
-    clustidx = m.GetProp(clus_tag)
-
-    if clustidx in idxhash.keys():
-      idxhash[clustidx].append(m_idx)
-    else:
-      idxhash[clustidx] = [m_idx]
-
-  ## Convert hash into list of lists; only need the Values(mol_idx)
-  dic_list = list(map(list, idxhash.values()))
-  idx_list = sorted(dic_list, key=len, reverse=True)
-  idx_tupl = tuple(map( tuple,idx_list))
-  print(idx_tupl)
-
-  return idx_list
-
-###################################################################
 def MolSetProp( mol, name, rank, score, s_type, r_avg, cid, fp ):
   mol.SetProp('Name', name)
   mol.SetProp('Rank', rank)
@@ -470,12 +419,11 @@ def ClusterFps(Fp, cutoff):
     dists = []
     nfps = len(Fp)
     for i in list(range(1, nfps)):
-      sims = DataStructs.BulkTanimotoSimilarity(Fp[i], Fp[:i])
-      dists.extend([1-x for x in sims])
+        sims = DataStructs.BulkTanimotoSimilarity(Fp[i], Fp[:i])
+        dists.extend([1-x for x in sims])
 
     # now cluster the data:
     cs = Butina.ClusterData(dists, nfps, cutoff, isDistData=True)
-#    print(cs)  # show data table formating; tuple
     return cs
 
 
@@ -494,17 +442,13 @@ def UserInput():
                   help='Tanimoto Cutoff: float (def: 0.4)')
   p.add_argument('-top', dest='top_mol', required=False, default=False,
                   help='no. of top molecule for clustering : int')
-  p.add_argument('-clus',dest='clus_tag', required=False, default=False,
-                  help='Override FP-based clustering, use clusterIdx in SDF Tag instead')
-  p.add_argument('-sort', dest='sort_tag', required=False, default=False,
-                  help='Sort molecules by <tag>')
 
   p.add_argument('-pdb', dest='pmol_pdb', required=False, default=False,
                   help='To generate PyMOL session, add receptor structure: pdb')
   p.add_argument('-pdf', dest='pdf', required=False, action='store_true',
                   help='Generate mol cluster pdf')
-  p.add_argument('-app', dest='app_score', required=False, default=False,
-                  help='Append Score in <tag> to Mol Title')
+  p.add_argument('-sort', dest='sort', required=False, default=False,
+                  help='Sort molecules by <SDF tag>')
 
   args = p.parse_args()
   return args

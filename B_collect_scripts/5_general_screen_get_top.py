@@ -116,7 +116,7 @@ def doit( ):
 
     mpi  = multiprocessing.Pool()
     Data = [x for x in tqdm(mpi.imap(ExtractScore,File_Names),total=len(File_Names))]
-#    Data = [ExtractScoreInfo(fn) for fn in File_Names]
+#    Data = [ExtractScore(fn) for fn in File_Names]
     mpi.close()
     mpi.join()
 
@@ -149,7 +149,7 @@ def doit( ):
     Top_sdf['NewID'] = ['{0}::{1}::{2:.2f}::{3}'.format(row[args.sdfname],i+1,row[args.sdfscore],args.dock) for i,row in Top_sdf.iterrows() ]
 #    Top_sdf['Ranking'] = Top_sdf.index.apply(lambda x: int(x)+1)  # pandas update broken it
     Top_sdf['Ranking'] = [ x+1 for x in Top_sdf.index.to_list() ]
-    print('Total taken: {0}\n'.forma(len(Top_sdf)))
+    print('Total taken: {0}\n'.format(len(Top_sdf)))
 
     ## Write out sdf/txt
     if args.arg_exc is None and args.arg_sel is None:
@@ -193,8 +193,8 @@ class CollectSDFData(object):
 
     sel_df = df[ df[self.name].isin(self.mol_df[self.name]) ]
     top_df = pd.merge(sel_df, self.mol_df, on=self.name)
-    rdpd.AddMurckoToFrame(top_df, molCol='ROMol', MurckoCol='Hetero_Murcko',Generic=False)
-    rdpd.AddMurckoToFrame(top_df, molCol='ROMol', MurckoCol='Generic_Murcko',Generic=True)
+    rdpd.AddMurckoToFrame(top_df, molCol='ROMol', MurckoCol='Hetero_Murcko SMILES',Generic=False)
+    rdpd.AddMurckoToFrame(top_df, molCol='ROMol', MurckoCol='Generic_Murcko_SMILES',Generic=True)
     print('  # SDF input > {0} : {1}, take {2}'.format(sdf_file, len(df), len(top_df)))
 
     del df
