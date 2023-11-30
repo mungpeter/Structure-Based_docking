@@ -384,7 +384,7 @@ def GenPyMOLClust( Mol_List, output_name, ref_pdb, Dock_Files ):
   pymol_pml.write("disable clust.*\ndisable HB.*\ndisable ref_lig\nenable HB.all")
   pymol_pml.write("set ray_trace_mode, 1\nset ray_trace_gain, 0.008\n")
   pymol_pml.write("set ray_trace_color, black\n")
-  pymol_pml.write('set pse_export_version, 1.70\n')
+#  pymol_pml.write('set pse_export_version, 1.70\n')
   pymol_pml.write("save "+output_name+".pse\nquit\n")
   pymol_pml.flush()
   pymol_pml.close()
