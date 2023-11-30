@@ -359,7 +359,7 @@ def GenPyMOLClust( Mol_List, output_name, ref_pdb, Dock_Files ):
     dock_name = dock_file.split('/')[-1].split('.sdf')[0]
     pymol_pml.write("load {0}, {1}\n".format(dock_file, dock_name))
     pymol_pml.write("dist HB.all, poly, {0}, mode=2\n".format(dock_name))
-    pymol_pml.write('dist pi.all, poly, {0}, mode=5\n'.format(dock_name))
+#    pymol_pml.write('dist pi.all, poly, {0}, mode=5\n'.format(dock_name))
 
   ## write out each cluster as temp sdf to load into pymol
   for idx, Mols in enumerate(Mol_List):
@@ -380,7 +380,7 @@ def GenPyMOLClust( Mol_List, output_name, ref_pdb, Dock_Files ):
   pymol_pml.write("set mesh_width, 0.1\n")
   pymol_pml.write("set light_count, 1\nset ray_opaque_background, off\n")
   pymol_pml.write("color white, poly\ncolor cyan, "+ref_name+" and org\n")
-  pymol_pml.write("color cyan, ref_lig\ncolor cyan, pi.*\nutil.cnc\n")
+#  pymol_pml.write("color cyan, ref_lig\ncolor cyan, pi.*\nutil.cnc\n")
   pymol_pml.write("disable clust.*\ndisable HB.*\ndisable ref_lig\nenable HB.all")
   pymol_pml.write("set ray_trace_mode, 1\nset ray_trace_gain, 0.008\n")
   pymol_pml.write("set ray_trace_color, black\n")
