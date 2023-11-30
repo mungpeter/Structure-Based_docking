@@ -370,7 +370,7 @@ def GenPyMOLClust( Mol_List, output_name, ref_pdb, Dock_Files ):
     pse_sdf.close()
     pymol_pml.write("load _TEMP.clust.{0}.sdf, clust.{0}\n".format(idx+1))
     pymol_pml.write("dist HB.{0}, poly, clust.{0}, mode=2\n".format(idx+1))
-    pymol_pml.write("dist pi.{0}, poly, clust.{0}, mode=5\n".format(idx+1))
+#    pymol_pml.write("dist pi.{0}, poly, clust.{0}, mode=5\n".format(idx+1))
 
   pymol_pml.write("show sticks, org\nset valence\n")
   pymol_pml.write("hide (h. and (e. c extend 1))\n")
@@ -392,6 +392,7 @@ def GenPyMOLClust( Mol_List, output_name, ref_pdb, Dock_Files ):
   m_out.close()
 
   os.system("pymol -c -q -Q {0}.pml".format(output_name))
+  os.system('gzip {0}.*pse {0}.*sdf'.format(output_name))
   os.system("rm ./_TEMP.clust.*.sdf")
 #  os.system("rm {0}.pml".format(output_name))
 
