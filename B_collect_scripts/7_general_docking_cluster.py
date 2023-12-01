@@ -358,7 +358,7 @@ def GenPyMOLClust( Mol_List, output_name, ref_pdb, Dock_Files ):
   for dock_file in Dock_Files:
     dock_name = dock_file.split('/')[-1].split('.sdf')[0]
     pymol_pml.write("load {0}, {1}\n".format(dock_file, dock_name))
-    pymol_pml.write("dist HB.all, poly + rename HOH, {0}, mode=2\n".format(dock_name))
+    pymol_pml.write("distance HB.all, poly + resname HOH, {0}, mode=2\n".format(dock_name))
 #    pymol_pml.write('dist pi.all, poly, {0}, mode=5\n'.format(dock_name))
 
   ## write out each cluster as temp sdf to load into pymol
@@ -369,7 +369,7 @@ def GenPyMOLClust( Mol_List, output_name, ref_pdb, Dock_Files ):
       m_out.write(mol)
     pse_sdf.close()
     pymol_pml.write("load _TEMP.clust.{0}.sdf, clust.{0}\n".format(idx+1))
-    pymol_pml.write("dist HB.{0}, poly + rename HOH, clust.{0}, mode=2\n".format(idx+1))
+    pymol_pml.write("distance HB.{0}, poly + resname HOH, clust.{0}, mode=2\n".format(idx+1))
 #    pymol_pml.write("dist pi.{0}, poly, clust.{0}, mode=5\n".format(idx+1))
 
   pymol_pml.write("show sticks, org\nset valence\n")
