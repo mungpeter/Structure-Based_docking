@@ -7,7 +7,9 @@ usage = '''\n\n  ## Usage: {0}
       -pref < >  [ Output Prefix ]\n
   Optional:
       -tag  < >  [ SDF tag of MOL identifier (Def: 'Name') ]
-      -sort < >  [ Sort based on SDF Tag, or "Name,Rank, Score" (Def: None) ]\n'''.format(sys.argv[0])
+      -sort < >  [ Sort based on SDF Tag, or "Name,Rank, Score" (Def: None) ]\n
+    FRED/HYBRID score tag: Chemgauss4
+    GlideSP score tag:     r_i_glide_gscore\n'''.format(sys.argv[0])
 if len(sys.argv) < 4: sys.exit(usage)
 
 import re,gc
@@ -15,7 +17,6 @@ import bz2,gzip,lzma
 import pandas as pd
 
 from rdkit import Chem
-from rdkit.Chem import MolStandardize
 from rdkit.Chem import PandasTools as rdpd
 
 from argparse import ArgumentParser
@@ -61,7 +62,7 @@ def main():
     gc.collect()
 
 #  all_df = pd.concat(mol_sele).set_index('Title').reindex(uniq_id).reset_index()
-  all_df = pd.concat(mol_sele).reset_index(drop=True)
+  all_df = pd.concat(mol_sele).drop_duplicates(subset=args.id_tag).reset_index(drop=True)
   print(all_df[:5])
   found_id  = all_df[args.id_tag].to_list()
   missed_id = [x for x in uniq_id if x not in set(found_id)]
